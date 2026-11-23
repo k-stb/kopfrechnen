@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#070708" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070708'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23e4ff3b' font-family='Georgia,serif' font-size='34'%3E%E2%88%91%3C/text%3E%3C/svg%3E" />
-<title>SIGNAL // Mental Math Studio</title>
+<title>SIGNAL // Psychometric Mental Math</title>
 <style>
   :root {
     --bg: #070708;
@@ -116,7 +116,6 @@
   }
 
   .dock-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-
   .status-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--ok); box-shadow: 0 0 10px var(--ok); flex-shrink: 0;
@@ -217,7 +216,7 @@
   .tag-line {
     font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.11em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 6px;
@@ -421,13 +420,13 @@
 
   .op-row {
     display: grid;
-    grid-template-columns: 36px 1fr 52px 52px;
+    grid-template-columns: 116px 1fr 44px 48px;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 8px 0;
     border-bottom: 1px solid var(--border);
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11px;
   }
   .op-bar { height: 4px; background: var(--border); }
   .op-bar-fill { height: 100%; background: var(--text); }
@@ -489,7 +488,7 @@
     <div class="dock-left">
       <div class="status-dot" id="status-dot"></div>
       <span class="clock" id="ui-clock">00:00:00</span>
-      <span id="ui-status-text">FLOW 85%</span>
+      <span id="ui-status-text">ELO 1000</span>
     </div>
     <div class="dock-actions">
       <button class="dock-btn" id="btn-theme" title="Dark / Halden Paper">◐</button>
@@ -499,9 +498,9 @@
   </header>
 
   <div class="meta-strip">
-    <span>ID <strong id="ui-device-id">---</strong></span>
+    <span>ELO <strong id="ui-elo">1000</strong></span>
     <span>XP <strong id="ui-xp">0</strong> · COMBO <strong id="ui-combo">0×</strong></span>
-    <span>RECALL <strong id="ui-hate-count">0</strong> · ACC <strong id="ui-acc">85%</strong></span>
+    <span>FÄLLIG <strong id="ui-due-count">0</strong> · ACC <strong id="ui-acc">85%</strong></span>
   </div>
 
   <main class="stage">
@@ -509,7 +508,7 @@
       <button class="mode-chip active" data-mode="sprint10">01 Sprint</button>
       <button class="mode-chip" data-mode="sec60">02 60s</button>
       <button class="mode-chip" data-mode="audit">03 Finance %</button>
-      <button class="mode-chip" data-mode="weakness">04 Weakness</button>
+      <button class="mode-chip" data-mode="weakness">04 Micro-Drill</button>
       <button class="mode-chip" data-mode="estimate">05 Audit ±5%</button>
     </div>
 
@@ -522,7 +521,7 @@
       <div class="bar-track"><div class="bar-fill ghost" id="ui-ghost"></div></div>
     </div>
 
-    <div class="tag-line" id="ui-tag">ADAPTIVE ENGINE · 85% SWEET-SPOT</div>
+    <div class="tag-line" id="ui-tag">PSYCHOMETRIC ELO · MICRO-SKILL ENGINE</div>
     <div class="equation" id="ui-eq">Ready.</div>
     <div class="answer-readout empty" id="ui-answer">_</div>
     <div class="feedback-line" id="ui-feedback">Numpad oder Tastatur nutzen.</div>
@@ -530,7 +529,7 @@
     <div class="summary-box" id="summary-box">
       <div class="section-label" style="margin:0;">SESSION COMPLETE · ZEIGARNIK OPEN LOOP</div>
       <div class="summary-metrics">
-        <div><div class="metric-val" id="sum-acc">0%</div><div class="metric-lbl">Accuracy</div></div>
+        <div><div class="metric-val" id="sum-elo">1000</div><div class="metric-lbl">Rating (Elo)</div></div>
         <div><div class="metric-val" id="sum-avg">0.0s</div><div class="metric-lbl">Ø Speed</div></div>
         <div><div class="metric-val" id="sum-xp">+0</div><div class="metric-lbl">Earned XP</div></div>
       </div>
@@ -566,13 +565,13 @@
 <div class="drawer-backdrop" id="drawer-backdrop">
   <div class="drawer">
     <div class="drawer-head">
-      <h2>Index &amp; Telemetry</h2>
+      <h2>Index &amp; Psychometrics</h2>
       <button class="dock-btn" id="btn-close-drawer">ESC</button>
     </div>
 
     <div>
-      <div class="section-label">Adaptive Mastery Profile</div>
-      <div id="op-stats-list"></div>
+      <div class="section-label">Micro-Skill Elo &amp; Speed Telemetry</div>
+      <div id="skill-stats-list"></div>
     </div>
 
     <div>
@@ -580,7 +579,7 @@
       <div class="qr-wrap">
         <img id="qr-img" alt="Sync QR-Code" />
         <div style="font-size:11px; color:var(--muted); line-height:1.45;">
-          Einfach mit der Handy-Kamera scannen – öffnet die App direkt mit deinem exakten Spielstand. Alternativ kannst du den Code darunter kopieren und einfügen.
+          Mit der Handy-Kamera scannen – überträgt Elo, Micro-Skills &amp; fällige Spaced-Repetition-Karten direkt. Alternativ Code kopieren/einfügen.
         </div>
       </div>
       <input class="sync-input" id="sync-code" readonly />
@@ -713,80 +712,83 @@
     ["07 · AUDIT-SCHÄTZUNG", "18,4% von 420k ≈ 20% (84k) minus ~1,5% (6,3k) ≈ 77,7k."]
   ];
 
-  // ---------------- STATE + COMPACT SYNC ENCODER ----------------
-  function genDeviceId() { return 'DEV-' + Math.random().toString(36).substring(2, 6).toUpperCase(); }
-  const OP_KEYS = ['+', '-', '×', '÷', '%'];
-  const DEFAULT_OPS = {
-    '+': { n: 4, ok: 4, avgMs: 2600, lvl: 1 },
-    '-': { n: 4, ok: 3, avgMs: 2900, lvl: 1 },
-    '×': { n: 4, ok: 3, avgMs: 3200, lvl: 1 },
-    '÷': { n: 2, ok: 2, avgMs: 3400, lvl: 1 },
-    '%': { n: 2, ok: 2, avgMs: 3600, lvl: 1 }
+  // ---------------- PSYCHOMETRIC STATE (ELO + MICRO-SKILLS + LEITNER SRS) ----------------
+  const SKILL_META = {
+    carry_add:     { label: 'ADD ÜBERTRAG', op: '+' },
+    borrow_sub:    { label: 'SUB ÜBERTRAG', op: '-' },
+    hard_mul:      { label: '7/8/9× REIHEN', op: '×' },
+    two_digit_mul: { label: '2-STELLIG ×',  op: '×' },
+    div_clean:     { label: 'DIVISION ÷',   op: '÷' },
+    pct_odd:       { label: 'PROZENT %',    op: '%' }
   };
+  const SKILL_KEYS = Object.keys(SKILL_META);
 
-  let state = JSON.parse(localStorage.getItem('signal_math_v3') || 'null') || {
-    deviceId: genDeviceId(),
+  // Leitner intervals in ms: 30s, 10m, 24h, 3d, 7d
+  const SRS_INTERVALS = [30 * 1000, 10 * 60 * 1000, 24 * 3600 * 1000, 3 * 24 * 3600 * 1000, 7 * 24 * 3600 * 1000];
+
+  function makeDefaultSkills() {
+    const obj = {};
+    SKILL_KEYS.forEach(k => { obj[k] = { n: 2, ok: 2, avgMs: 2900, elo: 1000 }; });
+    return obj;
+  }
+
+  let state = JSON.parse(localStorage.getItem('signal_math_v4') || 'null') || {
     theme: 'dark',
     xp: 0,
+    elo: 1000,
     stamps: 2,
     history: [1,1,1,1,1,0,1,1,1,1],
-    ops: JSON.parse(JSON.stringify(DEFAULT_OPS)),
-    hateQueue: [],
+    skills: makeDefaultSkills(),
+    srs: [], // { skill, text, answer, hint, box, nextAt }
     openLoop: null,
     tricksUnlocked: 2
   };
 
-  function saveState() { localStorage.setItem('signal_math_v3', JSON.stringify(state)); }
+  function saveState() { localStorage.setItem('signal_math_v4', JSON.stringify(state)); }
 
-  // Ultra-compact Base64URL Sync Token (short enough for instant QR scan!)
+  // Ultra-compact Base64URL Sync Token (SIG3-)
   function encodeSync(st) {
     const compact = [
-      st.xp, st.stamps, st.tricksUnlocked, st.theme === 'light' ? 1 : 0,
-      OP_KEYS.map(k => [st.ops[k].n, st.ops[k].ok, st.ops[k].avgMs, st.ops[k].lvl]),
-      st.hateQueue.slice(0, 6).map(h => [h.op, h.text, h.answer, h.hint])
+      st.xp, Math.round(st.elo), st.stamps, st.tricksUnlocked, st.theme === 'light' ? 1 : 0,
+      SKILL_KEYS.map(k => [st.skills[k].n, st.skills[k].ok, Math.round(st.skills[k].avgMs), Math.round(st.skills[k].elo)]),
+      st.srs.slice(0, 5).map(h => [SKILL_KEYS.indexOf(h.skill), h.text, h.answer, h.hint, h.box, Math.round(h.nextAt / 1000)])
     ];
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(compact))))
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    return 'SIG2-' + b64;
+    return 'SIG3-' + b64;
   }
 
   function decodeSync(raw) {
     const str = raw.trim();
-    const idx2 = str.indexOf('SIG2-');
-    if (idx2 !== -1) {
-      let b64 = str.slice(idx2 + 5).replace(/-/g, '+').replace(/_/g, '/');
+    const idx3 = str.indexOf('SIG3-');
+    if (idx3 !== -1) {
+      let b64 = str.slice(idx3 + 5).replace(/-/g, '+').replace(/_/g, '/');
       while (b64.length % 4) b64 += '=';
       const arr = JSON.parse(decodeURIComponent(escape(atob(b64))));
-      const ops = {};
-      OP_KEYS.forEach((k, i) => {
-        const [n, ok, avgMs, lvl] = arr[4][i] || [2, 2, 3000, 1];
-        ops[k] = { n, ok, avgMs, lvl };
+      const skills = makeDefaultSkills();
+      SKILL_KEYS.forEach((k, i) => {
+        const [n, ok, avgMs, elo] = arr[5][i] || [2, 2, 2900, 1000];
+        skills[k] = { n, ok, avgMs, elo };
       });
-      const hateQueue = (arr[5] || []).map(([op, text, answer, hint]) => ({ op, text, answer, hint, due: 3 }));
+      const srs = (arr[6] || []).map(([si, text, answer, hint, box, sec]) => ({
+        skill: SKILL_KEYS[si] || 'hard_mul', text, answer, hint, box: box || 0, nextAt: (sec || 0) * 1000
+      }));
       return {
         ...state,
-        xp: arr[0] || 0,
-        stamps: arr[1] || 2,
-        tricksUnlocked: arr[2] || 2,
-        theme: arr[3] ? 'light' : 'dark',
-        ops,
-        hateQueue
+        xp: arr[0] || 0, elo: arr[1] || 1000, stamps: arr[2] || 2,
+        tricksUnlocked: arr[3] || 2, theme: arr[4] ? 'light' : 'dark',
+        skills, srs
       };
-    }
-    // Backward compatibility with SIG-
-    const idx1 = str.indexOf('SIG-');
-    if (idx1 !== -1) {
-      return JSON.parse(decodeURIComponent(escape(atob(str.slice(idx1 + 4)))));
     }
     throw new Error('Invalid');
   }
 
-  // Auto-import from URL hash (#sync=SIG2-...)
+  // Auto-import from URL hash (#sync=SIG3-...)
   if (location.hash.includes('sync=')) {
     try {
       const token = decodeURIComponent(location.hash.split('sync=')[1]);
       const imported = decodeSync(token);
-      if (imported && imported.ops) {
+      if (imported && imported.skills) {
         state = imported;
         saveState();
         document.documentElement.setAttribute('data-theme', state.theme || 'dark');
@@ -819,151 +821,179 @@
     $('btn-sound').textContent = sfxOn ? 'SFX ON' : 'SFX OFF';
   });
 
-  // ---------------- ADAPTIVE + SPACED REPETITION GENERATOR ----------------
+  // ---------------- PSYCHOMETRIC ELO + MICRO-SKILL + PHASE GENERATOR ----------------
   const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 
-  function pickAdaptiveOp() {
-    if (mode === 'audit') return '%';
-    const keys = ['+', '-', '×', '÷'];
+  function pickMicroSkill() {
+    if (mode === 'audit') return 'pct_odd';
+    const pool = SKILL_KEYS.filter(k => k !== 'pct_odd');
     if (mode === 'weakness') {
-      return keys.sort((a, b) => {
-        const sa = (state.ops[a].ok / Math.max(1, state.ops[a].n)) - (state.ops[a].avgMs / 10000);
-        const sb = (state.ops[b].ok / Math.max(1, state.ops[b].n)) - (state.ops[b].avgMs / 10000);
-        return sa - sb;
-      })[0];
+      return pool.sort((a, b) => state.skills[a].elo - state.skills[b].elo)[0];
     }
-    const weights = keys.map(k => {
-      const o = state.ops[k];
-      return Math.max(0.2, (1.15 - o.ok / Math.max(1, o.n)) + (o.avgMs / 6000));
+    // Weight toward lower-Elo / slower micro-skills
+    const weights = pool.map(k => {
+      const s = state.skills[k];
+      return Math.max(0.2, (1400 - s.elo) / 300 + (s.avgMs / 5000));
     });
     let r = Math.random() * weights.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < keys.length; i++) { r -= weights[i]; if (r <= 0) return keys[i]; }
-    return '+';
+    for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) return pool[i]; }
+    return 'carry_add';
   }
 
   function buildProblem() {
+    // 1. Audit ±5% Estimation Mode
     if (mode === 'estimate') {
-      const templates = [
-        () => {
-          const p = rand(11, 48) + (rand(0, 1) ? 0.5 : 0);
-          const base = rand(12, 95) * 10;
-          const exact = Math.round((p / 100) * base);
-          return { op: '%', text: `${p}% · ${base}`, answer: String(exact), exact, isEst: true,
-            hint: `≈ ${Math.round(p/10)*10}% von ${base} = ${Math.round(Math.round(p/10)*0.1*base)} (exakt ${exact})` };
-        },
-        () => {
-          const a = rand(18, 64) * 10 + rand(1, 9);
-          const b = rand(12, 39);
-          const exact = a * b;
-          return { op: '×', text: `${a} × ${b}`, answer: String(exact), exact, isEst: true,
-            hint: `≈ ${Math.round(a/10)*10} × ${Math.round(b/10)*10} = ${Math.round(a/10)*10 * Math.round(b/10)*10} (exakt ${exact})` };
-        }
-      ];
-      const p = templates[rand(0, templates.length - 1)]();
-      p.targetMs = 4500; p.bonus = false;
-      return p;
+      const p = rand(11, 48) + (rand(0, 1) ? 0.5 : 0);
+      const base = rand(12, 95) * 10;
+      const exact = Math.round((p / 100) * base);
+      return {
+        skill: 'pct_odd', text: `${p}% · ${base}`, answer: String(exact), exact, isEst: true,
+        hint: `≈ ${Math.round(p/10)*10}% von ${base} = ${Math.round(Math.round(p/10)*0.1*base)} (exakt ${exact})`,
+        probElo: state.elo + 20, targetMs: 4500, phase: 'AUDIT', bonus: false
+      };
     }
 
-    if (!bossMode && state.hateQueue.length > 0 && mode !== 'audit') {
-      state.hateQueue.forEach(h => h.due--);
-      const dueIdx = state.hateQueue.findIndex(h => h.due <= 0);
+    // 2. Time-Based Spaced Repetition (Leitner SRS)
+    if (!bossMode && mode !== 'audit') {
+      const now = Date.now();
+      const dueIdx = state.srs.findIndex(item => item.nextAt <= now);
       if (dueIdx !== -1) {
-        const item = state.hateQueue[dueIdx];
+        const it = state.srs[dueIdx];
+        const sk = state.skills[it.skill] || state.skills.hard_mul;
         return {
-          op: item.op, text: item.text, answer: item.answer, hint: item.hint,
-          isRecall: true, recallIdx: dueIdx, bonus: false,
-          targetMs: state.ops[item.op]?.avgMs || 3000
+          skill: it.skill, text: it.text, answer: it.answer, hint: it.hint,
+          isRecall: true, recallIdx: dueIdx, recallBox: it.box,
+          probElo: sk.elo + 40, targetMs: sk.avgMs, phase: `RECALL · BOX ${it.box + 1}`, bonus: false
         };
       }
     }
 
-    const op = pickAdaptiveOp();
-    const lvl = state.ops[op].lvl || 1;
+    // 3. Speed-Phase vs. Capacity-Phase alternation
+    const isSpeedPhase = (qIdx % 3 === 1);
+    const skill = pickMicroSkill();
+    const sk = state.skills[skill];
+    const effectiveElo = sk.elo + (isSpeedPhase ? -70 : 60);
+    // Map Elo (~850..1450) smoothly to intensity 0..1
+    const diff = Math.max(0, Math.min(1, (effectiveElo - 850) / 550));
+
     let a, b, ans, text, hint;
 
-    if (op === '%') {
+    if (skill === 'carry_add') {
+      // Forced ones-digit carry (a%10 + b%10 >= 10)
+      const scale = Math.round(20 + diff * 260);
+      const a1 = rand(4, 9), b1 = rand(10 - a1, 9);
+      a = Math.floor(rand(10, scale) / 10) * 10 + a1;
+      b = Math.floor(rand(10, Math.max(20, scale * 0.7)) / 10) * 10 + b1;
+      ans = a + b; text = `${a} + ${b}`;
+      const tens = Math.floor(b / 10) * 10;
+      hint = `${a} + ${tens} = ${a + tens}, + ${b1} = ${ans}`;
+    } else if (skill === 'borrow_sub') {
+      // Forced ones-digit borrow (b%10 > a%10)
+      const scale = Math.round(40 + diff * 300);
+      const a1 = rand(1, 6), b1 = rand(a1 + 1, 9);
+      a = Math.floor(rand(30, scale) / 10) * 10 + a1;
+      b = Math.floor(rand(10, Math.max(20, a - 15)) / 10) * 10 + b1;
+      ans = a - b; text = `${a} − ${b}`;
+      const tens = Math.floor(b / 10) * 10;
+      hint = `${a} − ${tens} = ${a - tens}, − ${b1} = ${ans}`;
+    } else if (skill === 'hard_mul') {
+      const hard = [6, 7, 8, 9, 12, 13, 14];
+      const maxIdx = Math.min(hard.length - 1, Math.floor(3 + diff * 3.5));
+      a = hard[rand(0, maxIdx)];
+      b = hard[rand(0, Math.min(3, maxIdx))];
+      ans = a * b; text = `${a} × ${b}`;
+      hint = a > 10 ? `(10×${b}) + (${a-10}×${b}) = ${10*b} + ${(a-10)*b} = ${ans}` : `${a} × ${b} = ${ans}`;
+    } else if (skill === 'two_digit_mul') {
+      a = rand(12, Math.round(16 + diff * 22));
+      b = rand(3, Math.round(6 + diff * 8));
+      ans = a * b; text = `${a} × ${b}`;
+      const tA = Math.floor(a / 10) * 10, oA = a % 10;
+      hint = `(${tA}×${b}) + (${oA}×${b}) = ${tA*b} + ${oA*b} = ${ans}`;
+    } else if (skill === 'div_clean') {
+      b = rand(3, Math.round(8 + diff * 9));
+      ans = rand(4, Math.round(12 + diff * 20));
+      a = b * ans; text = `${a} ÷ ${b}`;
+      hint = `${b} × ${ans} = ${a}`;
+    } else {
       const sets = [
-        [10, rand(2, 48) * 10], [20, rand(2, 35) * 5], [25, rand(2, 28) * 4],
-        [50, rand(4, 96) * 2], [5, rand(2, 40) * 20], [15, rand(2, 18) * 20],
-        [16, 25], [12, 50], [8, 25], [40, rand(2, 25) * 5]
+        [15, rand(2, 18) * 20], [12, 50], [16, 25], [8, 25], [35, rand(2, 12) * 20],
+        [25, rand(3, 28) * 4], [20, rand(3, 35) * 5], [5, rand(3, 40) * 20]
       ];
       const [p, base] = sets[rand(0, sets.length - 1)];
       text = `${p}% · ${base}`;
       ans = Math.round((p / 100) * base);
       hint = p === 15 ? `10% (${base/10}) + 5% (${base/20}) = ${ans}` : `${p}% von ${base} = ${ans}`;
-    } else if (op === '+') {
-      const max = [25, 65, 140, 320, 650][lvl - 1];
-      a = rand(Math.floor(max * 0.25), max); b = rand(Math.floor(max * 0.2), max);
-      ans = a + b; text = `${a} + ${b}`;
-      const tens = Math.floor(b / 10) * 10, ones = b % 10;
-      hint = `${a} + ${tens} = ${a + tens}, + ${ones} = ${ans}`;
-    } else if (op === '-') {
-      const max = [30, 85, 180, 380, 720][lvl - 1];
-      a = rand(Math.floor(max * 0.4), max); b = rand(Math.floor(max * 0.15), a - 2);
-      ans = a - b; text = `${a} − ${b}`;
-      const tens = Math.floor(b / 10) * 10, ones = b % 10;
-      hint = `${a} − ${tens} = ${a - tens}, − ${ones} = ${ans}`;
-    } else if (op === '×') {
-      const ranges = [[3,9,3,9], [4,12,4,12], [6,16,5,12], [11,24,6,14], [14,34,7,18]][lvl - 1];
-      a = rand(ranges[0], ranges[1]); b = rand(ranges[2], ranges[3]);
-      ans = a * b; text = `${a} × ${b}`;
-      const tA = Math.floor(a / 10) * 10, oA = a % 10;
-      hint = a > 10 ? `(${tA}×${b}) + (${oA}×${b}) = ${tA*b} + ${oA*b} = ${ans}` : `${a} × ${b} = ${ans}`;
-    } else {
-      const ranges = [[2,9,2,9], [3,12,4,12], [5,14,6,16], [6,16,9,24], [8,19,12,32]][lvl - 1];
-      b = rand(ranges[0], ranges[1]); ans = rand(ranges[2], ranges[3]);
-      a = b * ans; text = `${a} ÷ ${b}`;
-      hint = `${b} × ${ans} = ${a}`;
     }
 
-    const baseTarget = state.ops[op].avgMs || 2800;
+    const baseTarget = sk.avgMs || 2800;
+    const phaseMult = bossMode ? 0.85 : (isSpeedPhase ? 0.80 : 1.15);
     return {
-      op, text, answer: String(ans), hint,
-      bonus: !bossMode && Math.random() < 0.2,
-      targetMs: bossMode ? Math.round(baseTarget * 0.85) : baseTarget
+      skill, text, answer: String(ans), hint,
+      probElo: Math.round(effectiveElo),
+      targetMs: Math.round(baseTarget * phaseMult),
+      phase: isSpeedPhase ? 'SPEED' : 'CAPACITY',
+      bonus: !bossMode && Math.random() < 0.2
     };
   }
 
-  function addHateTask(prob) {
-    if (prob.isEst) return;
-    const exists = state.hateQueue.find(h => h.text === prob.text);
-    if (exists) { exists.due = 4; return; }
-    state.hateQueue.push({ op: prob.op, text: prob.text, answer: prob.answer, hint: prob.hint, due: 4 });
-    if (state.hateQueue.length > 12) state.hateQueue.shift();
-  }
+  function updateEloAndSRS(prob, isOk, ms) {
+    const sk = state.skills[prob.skill];
+    const expected = 1 / (1 + Math.pow(10, (prob.probElo - state.elo) / 400));
+    const fast = ms <= prob.targetMs;
+    const score = isOk ? (fast ? 1.0 : 0.72) : 0.0;
+    const delta = Math.round(24 * (score - expected));
 
-  function recordResult(prob, isOk, ms) {
-    const o = state.ops[prob.op];
-    if (o) {
-      o.n++;
-      if (isOk) o.ok++;
-      if (isOk && ms < 15000) o.avgMs = Math.round(o.avgMs * 0.78 + ms * 0.22);
-      const opAcc = o.ok / o.n;
-      if (o.n >= 3) {
-        if (opAcc > 0.89 && o.avgMs < 2700 && o.lvl < 5) o.lvl++;
-        else if (opAcc < 0.72 && o.lvl > 1) o.lvl--;
-      }
+    state.elo = Math.max(600, Math.min(2200, state.elo + delta));
+    if (sk) {
+      sk.n++;
+      if (isOk) sk.ok++;
+      if (isOk && ms < 15000) sk.avgMs = Math.round(sk.avgMs * 0.78 + ms * 0.22);
+      sk.elo = Math.max(600, Math.min(2200, sk.elo + delta));
     }
+
     state.history.push(isOk ? 1 : 0);
     if (state.history.length > 15) state.history.shift();
-    if (!isOk || ms > 4200) addHateTask(prob);
-    else if (prob.isRecall && ms <= 3500) state.hateQueue.splice(prob.recallIdx, 1);
+
+    // Leitner Time-Based Spaced Repetition
+    if (!prob.isEst) {
+      const now = Date.now();
+      if (!isOk || ms > 4200) {
+        const idx = state.srs.findIndex(x => x.text === prob.text);
+        if (idx !== -1) {
+          state.srs[idx].box = 0;
+          state.srs[idx].nextAt = now + SRS_INTERVALS[0];
+        } else {
+          state.srs.push({ skill: prob.skill, text: prob.text, answer: prob.answer, hint: prob.hint, box: 0, nextAt: now + SRS_INTERVALS[0] });
+          if (state.srs.length > 15) state.srs.shift();
+        }
+      } else if (prob.isRecall) {
+        const item = state.srs[prob.recallIdx];
+        if (item) {
+          item.box++;
+          if (item.box >= SRS_INTERVALS.length) state.srs.splice(prob.recallIdx, 1);
+          else item.nextAt = now + SRS_INTERVALS[item.box];
+        }
+      }
+    }
+    return delta;
   }
 
   function renderHUD() {
     const lvl = Math.floor(state.xp / 250) + 1;
     $('ui-lvl-badge').textContent = String(lvl).padStart(2, '0');
-    $('ui-device-id').textContent = state.deviceId;
+    $('ui-elo').textContent = Math.round(state.elo);
     $('ui-xp').textContent = state.xp;
     $('ui-combo').textContent = combo + '×';
-    $('ui-hate-count').textContent = state.hateQueue.length;
+
+    const dueCount = state.srs.filter(x => x.nextAt <= Date.now()).length;
+    $('ui-due-count').textContent = dueCount;
 
     const acc = Math.round((state.history.reduce((a, b) => a + b, 0) / state.history.length) * 100);
     $('ui-acc').textContent = acc + '%';
 
     const dot = $('status-dot');
     dot.className = 'status-dot' + (bossMode ? ' boss' : (overdrive ? ' overdrive' : ''));
-    $('ui-status-text').textContent = bossMode ? 'OVERCLOCK 2.5×' : (overdrive ? 'OVERDRIVE 2×' : `FLOW ${acc}%`);
+    $('ui-status-text').textContent = bossMode ? 'OVERCLOCK 2.5×' : (overdrive ? 'OVERDRIVE 2×' : `ELO ${Math.round(state.elo)}`);
 
     const stampsEl = $('ui-stamps');
     stampsEl.innerHTML = '';
@@ -1008,8 +1038,8 @@
 
     uiTag.className = 'tag-line' + (current.isRecall ? ' recall' : (current.bonus ? ' bonus' : ''));
     uiTag.textContent = current.isRecall
-      ? 'SPACED REPETITION · HASS-AUFGABE'
-      : (current.bonus ? 'MYSTERY BONUS · 3× XP' : (current.isEst ? 'AUDIT PLAUSIBILITÄT · ±5% TOLERANZ' : `${current.op} · LVL ${state.ops[current.op].lvl}`));
+      ? `${current.phase} · ${SKILL_META[current.skill].label}`
+      : (current.bonus ? 'MYSTERY BONUS · 3× XP' : `${current.phase} PHASE · ${SKILL_META[current.skill].label}`);
 
     if (!bossMode && mode === 'sprint10') {
       $('ui-progress-lbl').textContent = `${String(qIdx + 1).padStart(2,'0')} / ${qTotal}`;
@@ -1061,18 +1091,20 @@
     const earned = Math.round((20 + (beatGhost ? 12 : 0) + combo * 2) * mult);
     state.xp += earned; sessXp += earned;
 
+    const eloDelta = updateEloAndSRS(current, true, dt);
+    const eloStr = eloDelta >= 0 ? `+${eloDelta} ELO` : `${eloDelta} ELO`;
+
     uiAns.className = 'answer-readout correct';
     uiFb.className = 'feedback-line';
     uiFb.textContent = extraNote
       ? `+${earned} XP · ${extraNote}`
-      : (beatGhost ? `+${earned} XP · GHOST GESCHLAGEN (${(dt/1000).toFixed(2)}s)` : `+${earned} XP · ${(dt/1000).toFixed(2)}s`);
+      : `+${earned} XP · ${eloStr} · ${(dt/1000).toFixed(2)}s`;
 
     const note = PENTATONIC[Math.min(PENTATONIC.length - 1, (combo - 1) % PENTATONIC.length)];
     tone(note, 0.08, 'triangle', 0.1);
     vibe(overdrive || current.bonus ? [12, 20, 16] : 10);
     triggerPulse();
 
-    recordResult(current, true, dt);
     saveState();
     renderHUD();
     setTimeout(nextQ, 120);
@@ -1085,7 +1117,7 @@
     uiEq.classList.add('shake');
     uiFb.className = 'feedback-line strategy';
     uiFb.textContent = `Weg: ${current.hint}`;
-    recordResult(current, false, 6000);
+    updateEloAndSRS(current, false, 6000);
     saveState();
     renderHUD();
     setTimeout(nextQ, 1150);
@@ -1111,10 +1143,9 @@
     if (state.tricksUnlocked < TRICKS.length) state.tricksUnlocked++;
     state.openLoop = buildProblem().text;
 
-    const acc = sessTotal ? Math.round((sessOk / sessTotal) * 100) : 0;
     const avg = sessTimes.length ? (sessTimes.reduce((a,b)=>a+b,0) / sessTimes.length / 1000).toFixed(2) : '0.00';
 
-    $('sum-acc').textContent = acc + '%';
+    $('sum-elo').textContent = Math.round(state.elo);
     $('sum-avg').textContent = avg + 's';
     $('sum-xp').textContent = '+' + sessXp;
     $('sum-cliffhanger').innerHTML = `Offene Aufgabe für deine nächste Runde: <strong style="color:var(--text)">${state.openLoop}</strong>.`;
@@ -1177,20 +1208,21 @@
     });
   });
 
-  // ---------------- DRAWER + WORKING QR CODE ----------------
+  // ---------------- DRAWER (MICRO-SKILLS + QR + COPY/PASTE) ----------------
   function openDrawer() {
-    const list = $('op-stats-list');
+    const list = $('skill-stats-list');
     list.innerHTML = '';
-    for (const [op, o] of Object.entries(state.ops)) {
-      const acc = Math.round((o.ok / Math.max(1, o.n)) * 100);
+    SKILL_KEYS.forEach(k => {
+      const s = state.skills[k];
+      const pct = Math.max(8, Math.min(100, Math.round(((s.elo - 700) / 800) * 100)));
       const row = document.createElement('div');
       row.className = 'op-row';
-      row.innerHTML = `<strong>${op}</strong>
-        <div class="op-bar"><div class="op-bar-fill" style="width:${acc}%"></div></div>
-        <span>${acc}%</span>
-        <span style="color:var(--muted)">${(o.avgMs/1000).toFixed(1)}s</span>`;
+      row.innerHTML = `<strong>${SKILL_META[k].label}</strong>
+        <div class="op-bar"><div class="op-bar-fill" style="width:${pct}%"></div></div>
+        <span>${Math.round(s.elo)}</span>
+        <span style="color:var(--muted)">${(s.avgMs/1000).toFixed(1)}s</span>`;
       list.appendChild(row);
-    }
+    });
 
     const token = encodeSync(state);
     $('sync-code').value = token;
@@ -1225,11 +1257,11 @@
   });
 
   $('btn-import-sync').addEventListener('click', () => {
-    const code = prompt('Füge deinen SIG2-Sync-Code ein:');
+    const code = prompt('Füge deinen SIG3-Sync-Code ein:');
     if (!code) return;
     try {
       const imported = decodeSync(code);
-      if (imported && imported.ops) {
+      if (imported && imported.skills) {
         state = imported;
         saveState();
         document.documentElement.setAttribute('data-theme', state.theme || 'dark');
