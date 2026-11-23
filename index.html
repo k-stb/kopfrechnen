@@ -67,6 +67,25 @@
     pointer-events: none;
   }
 
+  .toast {
+    position: fixed;
+    top: max(18px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    z-index: 100;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
   .shell {
     position: relative;
     z-index: 1;
@@ -80,7 +99,6 @@
     gap: 8px;
   }
 
-  /* Floating Top Pill Dock */
   .dock {
     display: flex;
     align-items: center;
@@ -129,7 +147,6 @@
     border-color: var(--accent); font-weight: 700;
   }
 
-  /* Meta Strip */
   .meta-strip {
     display: flex;
     justify-content: space-between;
@@ -144,7 +161,6 @@
   }
   .meta-strip strong { color: var(--text); font-weight: 600; }
 
-  /* Center Stage */
   .stage {
     flex: 1;
     display: flex;
@@ -189,10 +205,7 @@
     gap: 5px;
     margin-bottom: 12px;
   }
-  .bar-track {
-    width: 100%; height: 3px; background: var(--border);
-    position: relative; overflow: hidden;
-  }
+  .bar-track { width: 100%; height: 3px; background: var(--border); position: relative; overflow: hidden; }
   .bar-fill { height: 100%; width: 0%; background: var(--text); transition: width 0.2s linear; }
   .bar-fill.ghost { background: var(--signal); transition: none; }
   .bar-labels {
@@ -261,7 +274,6 @@
   }
   .feedback-line.strategy { color: var(--text); }
 
-  /* Summary Box */
   .summary-box {
     width: 100%;
     max-width: 460px;
@@ -302,7 +314,6 @@
   }
   .boss-cta.show { display: block; }
 
-  /* Controls & Mobile Numpad */
   .controls-area {
     width: 100%;
     max-width: 440px;
@@ -354,7 +365,6 @@
   .key.fn { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
   .key.confirm { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
 
-  /* Footer */
   .footer-strip {
     display: flex;
     justify-content: space-between;
@@ -371,7 +381,6 @@
   .dot.gift { background: var(--signal); }
   .dot.filled { background: var(--text); }
 
-  /* Drawer */
   .drawer-backdrop {
     position: fixed;
     inset: 0;
@@ -445,11 +454,14 @@
     background: var(--bg);
     margin-bottom: 10px;
   }
-  #qr-canvas {
+  #qr-img {
+    width: 132px;
+    height: 132px;
     background: #ffffff;
     padding: 6px;
-    border-radius: 6px;
+    border-radius: 8px;
     flex-shrink: 0;
+    object-fit: contain;
   }
 
   .trick-item {
@@ -469,6 +481,7 @@
 </head>
 <body>
 
+<div class="toast" id="toast">SYNC IMPORTIERT ✓</div>
 <canvas id="glyph-canvas"></canvas>
 
 <div class="shell">
@@ -550,7 +563,6 @@
   </footer>
 </div>
 
-<!-- EDITORIAL DRAWER -->
 <div class="drawer-backdrop" id="drawer-backdrop">
   <div class="drawer">
     <div class="drawer-head">
@@ -566,9 +578,9 @@
     <div>
       <div class="section-label">Sync (QR-Code + Copy/Paste)</div>
       <div class="qr-wrap">
-        <canvas id="qr-canvas" width="116" height="116"></canvas>
+        <img id="qr-img" alt="Sync QR-Code" />
         <div style="font-size:11px; color:var(--muted); line-height:1.45;">
-          Scanne den QR-Code (z. B. über GitHub Pages) oder kopiere den Sync-Code darunter, um deinen Stand inkl. Hass-Aufgaben &amp; Profil auf ein anderes Gerät zu übertragen.
+          Einfach mit der Handy-Kamera scannen – öffnet die App direkt mit deinem exakten Spielstand. Alternativ kannst du den Code darunter kopieren und einfügen.
         </div>
       </div>
       <input class="sync-input" id="sync-code" readonly />
@@ -587,160 +599,18 @@
 
 <script>
 (() => {
-  // ---------------- COMPACT OFFLINE QR RENDERER (BYTE MODE, ECC-L) ----------------
-  // Minimal deterministic QR matrix encoder for short sync URLs/tokens
-  const QR = (() => {
-    const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
-    for (let i = 0, x = 1; i < 255; i++) {
-      EXP[i] = x; LOG[x] = i;
-      x = (x << 1) ^ (x & 128 ? 0x11d : 0);
-    }
-    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
-    const mul = (a, b) => (a && b) ? EXP[LOG[a] + LOG[b]] : 0;
+  const HOST_FALLBACK = 'https://k-stb.github.io/kopfrechnen/';
+  const $ = id => document.getElementById(id);
 
-    function rsPoly(ecLen) {
-      let p = [1];
-      for (let i = 0; i < ecLen; i++) {
-        const next = new Array(p.length + 1).fill(0);
-        for (let j = 0; j < p.length; j++) {
-          next[j] ^= p[j];
-          next[j + 1] ^= mul(p[j], EXP[i]);
-        }
-        p = next;
-      }
-      return p;
-    }
-
-    function rsEncode(data, ecLen) {
-      const gen = rsPoly(ecLen);
-      const res = new Uint8Array(data.length + ecLen);
-      res.set(data);
-      for (let i = 0; i < data.length; i++) {
-        const f = res[i];
-        if (f) for (let j = 0; j < gen.length; j++) res[i + j] ^= mul(gen[j], f);
-      }
-      return res.slice(data.length);
-    }
-
-    // Version table (ECC-L): [version, size, totalCodewords, ecPerBlock, blocks, alignPos[]]
-    const VERS = [
-      [2, 25, 44, 10, 1, [6,18]],
-      [4, 33, 100, 20, 1, [6,26]],
-      [6, 41, 172, 18, 2, [6,34]],
-      [9, 53, 292, 30, 2, [6,26,46]]
-    ];
-
-    function draw(canvas, text) {
-      const bytes = new TextEncoder().encode(text);
-      const vSpec = VERS.find(v => (v[2] - v[3] * v[4]) - 3 >= bytes.length) || VERS[VERS.length - 1];
-      const [ver, size, totalCW, ecCW, blocks, align] = vSpec;
-      const dataCW = totalCW - ecCW * blocks;
-
-      // Bit buffer
-      const bits = [];
-      const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
-      pushBits(4, 4); // Byte mode
-      pushBits(Math.min(bytes.length, dataCW - 2), 8);
-      for (let i = 0; i < Math.min(bytes.length, dataCW - 2); i++) pushBits(bytes[i], 8);
-      pushBits(0, 4);
-      while (bits.length % 8) bits.push(0);
-
-      const data = [];
-      for (let i = 0; i < bits.length; i += 8) {
-        let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
-        data.push(b);
-      }
-      for (let i = 0; data.length < dataCW; i++) data.push(i % 2 ? 0x11 : 0xec);
-
-      // Split blocks & interleave
-      const bSize = Math.floor(dataCW / blocks);
-      const dBlocks = [], eBlocks = [];
-      for (let b = 0; b < blocks; b++) {
-        const chunk = data.slice(b * bSize, (b + 1) * bSize);
-        dBlocks.push(chunk);
-        eBlocks.push(Array.from(rsEncode(chunk, ecCW)));
-      }
-      const stream = [];
-      for (let i = 0; i < bSize; i++) for (let b = 0; b < blocks; b++) stream.push(dBlocks[b][i]);
-      for (let i = 0; i < ecCW; i++) for (let b = 0; b < blocks; b++) stream.push(eBlocks[b][i]);
-
-      // Matrix
-      const m = Array.from({ length: size }, () => new Int8Array(size).fill(-1));
-      const setF = (r, c, v) => { if (r >= 0 && c >= 0 && r < size && c < size) m[r][c] = v ? 2 : 3; };
-      const finder = (r, c) => {
-        for (let dr = -1; dr <= 7; dr++) for (let dc = -1; dc <= 7; dc++) {
-          const on = (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) &&
-            (dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4));
-          setF(r + dr, c + dc, on);
-        }
-      };
-      finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
-      for (let i = 8; i < size - 8; i++) { setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
-      for (const r of align) for (const c of align) {
-        if (m[r][c] !== -1) continue;
-        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
-          setF(r + dr, c + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
-      }
-      // Reserve format info
-      for (let i = 0; i < 9; i++) {
-        if (m[8][i] === -1) m[8][i] = 3;
-        if (m[i][8] === -1) m[i][8] = 3;
-      }
-      for (let i = 0; i < 8; i++) {
-        if (m[8][size - 1 - i] === -1) m[8][size - 1 - i] = 3;
-        if (m[size - 1 - i][8] === -1) m[size - 1 - i][8] = 3;
-      }
-      setF(size - 8, 8, 1);
-
-      // Place data bits with mask 0 ((r+c)%2==0)
-      let bi = 0;
-      for (let col = size - 1; col > 0; col -= 2) {
-        if (col === 6) col--;
-        for (let i = 0; i < size; i++) {
-          const r = ((col + 1) & 2) ? i : size - 1 - i;
-          for (let c = col; c >= col - 1; c--) {
-            if (m[r][c] !== -1) continue;
-            const byte = stream[bi >> 3] || 0;
-            let bit = (byte >> (7 - (bi & 7))) & 1;
-            if ((r + c) % 2 === 0) bit ^= 1;
-            m[r][c] = bit;
-            bi++;
-          }
-        }
-      }
-
-      // Format bits for ECC-L (01) + Mask 0 (000) -> 0x77c4
-      const fmt = 0x77c4;
-      for (let i = 0; i < 15; i++) {
-        const bit = (fmt >> i) & 1;
-        const v = bit ? 2 : 3;
-        if (i < 6) m[i][8] = v;
-        else if (i < 8) m[i + 1][8] = v;
-        else m[size - 15 + i][8] = v;
-        if (i < 8) m[8][size - 1 - i] = v;
-        else if (i < 9) m[8][15 - i] = v;
-        else m[8][14 - i] = v;
-      }
-
-      const c2 = canvas.getContext('2d');
-      const scale = Math.floor(canvas.width / size);
-      const off = Math.floor((canvas.width - size * scale) / 2);
-      c2.fillStyle = '#ffffff';
-      c2.fillRect(0, 0, canvas.width, canvas.height);
-      c2.fillStyle = '#070708';
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          if (m[r][c] === 1 || m[r][c] === 2) {
-            c2.fillRect(off + c * scale, off + r * scale, scale, scale);
-          }
-        }
-      }
-    }
-    return { draw };
-  })();
+  function showToast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2600);
+  }
 
   // ---------------- SUBTLE REACTIVE GLYPH FIELD ----------------
-  const canvas = document.getElementById('glyph-canvas');
+  const canvas = $('glyph-canvas');
   const ctx = canvas.getContext('2d');
   const GLYPHS = ['.', '+', '-', '=', '#', '×', '÷'];
   let pts = [], pulseWave = { active: false, r: 0, x: 0, y: 0 }, pointer = { x: -999, y: -999 };
@@ -811,7 +681,7 @@
   }
   renderGlyphs();
 
-  // ---------------- RHYTHMIC AUDIO + HAPTICS ----------------
+  // ---------------- AUDIO + HAPTICS ----------------
   let audioCtx = null, sfxOn = true;
   const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
 
@@ -833,7 +703,6 @@
     if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch {} }
   }
 
-  // ---------------- TRICKS ----------------
   const TRICKS = [
     ["01 · PROZENT-UMKEHR", "16% von 25 ist exakt dasselbe wie 25% von 16 (= 4)."],
     ["02 · MAL 11", "35 × 11 → Ziffern addieren (3+5=8) und in die Mitte setzen → 385."],
@@ -844,11 +713,9 @@
     ["07 · AUDIT-SCHÄTZUNG", "18,4% von 420k ≈ 20% (84k) minus ~1,5% (6,3k) ≈ 77,7k."]
   ];
 
-  // ---------------- STATE + SPACED REPETITION ----------------
-  function genDeviceId() {
-    return 'DEV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-  }
-
+  // ---------------- STATE + COMPACT SYNC ENCODER ----------------
+  function genDeviceId() { return 'DEV-' + Math.random().toString(36).substring(2, 6).toUpperCase(); }
+  const OP_KEYS = ['+', '-', '×', '÷', '%'];
   const DEFAULT_OPS = {
     '+': { n: 4, ok: 4, avgMs: 2600, lvl: 1 },
     '-': { n: 4, ok: 3, avgMs: 2900, lvl: 1 },
@@ -864,18 +731,68 @@
     stamps: 2,
     history: [1,1,1,1,1,0,1,1,1,1],
     ops: JSON.parse(JSON.stringify(DEFAULT_OPS)),
-    hateQueue: [], // { op, text, answer, hint, due }
+    hateQueue: [],
     openLoop: null,
     tricksUnlocked: 2
   };
 
   function saveState() { localStorage.setItem('signal_math_v3', JSON.stringify(state)); }
 
-  // Auto-import from URL hash (#sync=SIG-...)
-  if (location.hash.startsWith('#sync=SIG-')) {
+  // Ultra-compact Base64URL Sync Token (short enough for instant QR scan!)
+  function encodeSync(st) {
+    const compact = [
+      st.xp, st.stamps, st.tricksUnlocked, st.theme === 'light' ? 1 : 0,
+      OP_KEYS.map(k => [st.ops[k].n, st.ops[k].ok, st.ops[k].avgMs, st.ops[k].lvl]),
+      st.hateQueue.slice(0, 6).map(h => [h.op, h.text, h.answer, h.hint])
+    ];
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(compact))))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return 'SIG2-' + b64;
+  }
+
+  function decodeSync(raw) {
+    const str = raw.trim();
+    const idx2 = str.indexOf('SIG2-');
+    if (idx2 !== -1) {
+      let b64 = str.slice(idx2 + 5).replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const arr = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      const ops = {};
+      OP_KEYS.forEach((k, i) => {
+        const [n, ok, avgMs, lvl] = arr[4][i] || [2, 2, 3000, 1];
+        ops[k] = { n, ok, avgMs, lvl };
+      });
+      const hateQueue = (arr[5] || []).map(([op, text, answer, hint]) => ({ op, text, answer, hint, due: 3 }));
+      return {
+        ...state,
+        xp: arr[0] || 0,
+        stamps: arr[1] || 2,
+        tricksUnlocked: arr[2] || 2,
+        theme: arr[3] ? 'light' : 'dark',
+        ops,
+        hateQueue
+      };
+    }
+    // Backward compatibility with SIG-
+    const idx1 = str.indexOf('SIG-');
+    if (idx1 !== -1) {
+      return JSON.parse(decodeURIComponent(escape(atob(str.slice(idx1 + 4)))));
+    }
+    throw new Error('Invalid');
+  }
+
+  // Auto-import from URL hash (#sync=SIG2-...)
+  if (location.hash.includes('sync=')) {
     try {
-      const parsed = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(10)))));
-      if (parsed && parsed.ops) { state = parsed; saveState(); history.replaceState(null, '', location.pathname); }
+      const token = decodeURIComponent(location.hash.split('sync=')[1]);
+      const imported = decodeSync(token);
+      if (imported && imported.ops) {
+        state = imported;
+        saveState();
+        document.documentElement.setAttribute('data-theme', state.theme || 'dark');
+        history.replaceState(null, '', location.pathname);
+        setTimeout(() => showToast('SYNC IMPORTIERT ✓'), 250);
+      }
     } catch {}
   }
 
@@ -885,7 +802,6 @@
   let sessOk = 0, sessTotal = 0, sessXp = 0, sessTimes = [];
   let qStart = 0, ghostRaf = null, timerInt = null, timeLeft = 60;
 
-  const $ = id => document.getElementById(id);
   const uiEq = $('ui-eq'), uiAns = $('ui-answer'), uiTag = $('ui-tag'), uiFb = $('ui-feedback');
   const btnStart = $('btn-start'), numpad = $('numpad'), summaryBox = $('summary-box');
   const keyLeft = $('key-left'), btnBoss = $('btn-boss');
@@ -926,7 +842,6 @@
   }
 
   function buildProblem() {
-    // Audit ±5% Estimation Mode
     if (mode === 'estimate') {
       const templates = [
         () => {
@@ -945,12 +860,10 @@
         }
       ];
       const p = templates[rand(0, templates.length - 1)]();
-      p.targetMs = 4500;
-      p.bonus = false;
+      p.targetMs = 4500; p.bonus = false;
       return p;
     }
 
-    // Check Spaced Repetition Hate-Queue (every few questions)
     if (!bossMode && state.hateQueue.length > 0 && mode !== 'audit') {
       state.hateQueue.forEach(h => h.due--);
       const dueIdx = state.hateQueue.findIndex(h => h.due <= 0);
@@ -1033,16 +946,10 @@
     }
     state.history.push(isOk ? 1 : 0);
     if (state.history.length > 15) state.history.shift();
-
-    // Manage Spaced Repetition Queue
-    if (!isOk || ms > 4200) {
-      addHateTask(prob);
-    } else if (prob.isRecall && ms <= 3500) {
-      state.hateQueue.splice(prob.recallIdx, 1);
-    }
+    if (!isOk || ms > 4200) addHateTask(prob);
+    else if (prob.isRecall && ms <= 3500) state.hateQueue.splice(prob.recallIdx, 1);
   }
 
-  // ---------------- HUD ----------------
   function renderHUD() {
     const lvl = Math.floor(state.xp / 250) + 1;
     $('ui-lvl-badge').textContent = String(lvl).padStart(2, '0');
@@ -1081,26 +988,17 @@
     ghostRaf = requestAnimationFrame(tick);
   }
 
-  // ---------------- GAME FLOW ----------------
   function nextQ() {
-    if (!bossMode && mode === 'sprint10' && qIdx >= qTotal) {
-      finishSession();
-      return;
-    }
+    if (!bossMode && mode === 'sprint10' && qIdx >= qTotal) { finishSession(); return; }
     current = buildProblem();
     typed = '';
     uiAns.textContent = '_';
     uiAns.className = 'answer-readout empty';
 
-    // In Estimate mode, left button becomes OK submit
     if (current.isEst) {
-      keyLeft.textContent = 'OK';
-      keyLeft.dataset.k = 'submit';
-      keyLeft.classList.add('confirm');
+      keyLeft.textContent = 'OK'; keyLeft.dataset.k = 'submit'; keyLeft.classList.add('confirm');
     } else {
-      keyLeft.textContent = 'Skip';
-      keyLeft.dataset.k = 'skip';
-      keyLeft.classList.remove('confirm');
+      keyLeft.textContent = 'Skip'; keyLeft.dataset.k = 'skip'; keyLeft.classList.remove('confirm');
     }
 
     uiEq.textContent = current.text;
@@ -1123,8 +1021,7 @@
   }
 
   function startSession(isBoss = false) {
-    bossMode = isBoss;
-    running = true;
+    bossMode = isBoss; running = true;
     qIdx = 0; combo = 0; overdrive = false;
     sessOk = 0; sessTotal = 0; sessXp = 0; sessTimes = [];
     summaryBox.classList.remove('show');
@@ -1162,8 +1059,7 @@
     const beatGhost = dt < current.targetMs;
     const mult = (current.bonus ? 3 : 1) * (overdrive ? 2 : 1) * (bossMode ? 2.5 : 1);
     const earned = Math.round((20 + (beatGhost ? 12 : 0) + combo * 2) * mult);
-    state.xp += earned;
-    sessXp += earned;
+    state.xp += earned; sessXp += earned;
 
     uiAns.className = 'answer-readout correct';
     uiFb.className = 'feedback-line';
@@ -1171,7 +1067,6 @@
       ? `+${earned} XP · ${extraNote}`
       : (beatGhost ? `+${earned} XP · GHOST GESCHLAGEN (${(dt/1000).toFixed(2)}s)` : `+${earned} XP · ${(dt/1000).toFixed(2)}s`);
 
-    // Pentatonic ascending feedback + Haptic
     const note = PENTATONIC[Math.min(PENTATONIC.length - 1, (combo - 1) % PENTATONIC.length)];
     tone(note, 0.08, 'triangle', 0.1);
     vibe(overdrive || current.bonus ? [12, 20, 16] : 10);
@@ -1209,15 +1104,9 @@
     $('ui-progress').style.width = '100%';
     $('ui-ghost').style.width = '0%';
 
-    if (wasBoss) {
-      state.stamps = 2; // Reset to 2 gifted after Boss
-    } else if (state.stamps < 10) {
-      state.stamps++;
-    }
-
-    if (state.stamps === 10) {
-      btnBoss.classList.add('show');
-    }
+    if (wasBoss) state.stamps = 2;
+    else if (state.stamps < 10) state.stamps++;
+    if (state.stamps === 10) btnBoss.classList.add('show');
 
     if (state.tricksUnlocked < TRICKS.length) state.tricksUnlocked++;
     state.openLoop = buildProblem().text;
@@ -1247,29 +1136,20 @@
     if (diffPct <= 0.05) {
       const sign = val >= current.exact ? '+' : '−';
       handleCorrect(`${sign}${(diffPct*100).toFixed(1)}% (EXAKT ${current.exact})`);
-    } else {
-      handleSkipOrWrong();
-    }
+    } else handleSkipOrWrong();
   }
 
   function inputKey(k) {
     if (!running || !current) return;
     if (k === 'skip') { handleSkipOrWrong(); return; }
     if (k === 'submit') { submitEstimate(); return; }
-    if (k === 'del') {
-      typed = typed.slice(0, -1);
-      vibe(6);
-    } else if (/^\d$/.test(k) && typed.length < 7) {
-      typed += k;
-      vibe(8);
-      tone(290, 0.025, 'sine', 0.035);
-    }
+    if (k === 'del') { typed = typed.slice(0, -1); vibe(6); }
+    else if (/^\d$/.test(k) && typed.length < 7) { typed += k; vibe(8); tone(290, 0.025, 'sine', 0.035); }
     uiAns.textContent = typed || '_';
     uiAns.classList.toggle('empty', !typed);
     if (!current.isEst && typed === current.answer) handleCorrect();
   }
 
-  // ---------------- EVENTS ----------------
   btnStart.addEventListener('click', () => startSession(false));
   btnBoss.addEventListener('click', () => startSession(true));
 
@@ -1281,21 +1161,11 @@
   });
 
   document.addEventListener('keydown', e => {
-    if ($('drawer-backdrop').classList.contains('open')) {
-      if (e.key === 'Escape') closeDrawer();
-      return;
-    }
-    if (!running) {
-      if (e.key === 'Enter') startSession(false);
-      return;
-    }
+    if ($('drawer-backdrop').classList.contains('open')) { if (e.key === 'Escape') closeDrawer(); return; }
+    if (!running) { if (e.key === 'Enter') startSession(false); return; }
     if (/^\d$/.test(e.key)) inputKey(e.key);
     else if (e.key === 'Backspace') inputKey('del');
-    else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (current.isEst) submitEstimate();
-      else handleSkipOrWrong();
-    }
+    else if (e.key === 'Enter') { e.preventDefault(); if (current.isEst) submitEstimate(); else handleSkipOrWrong(); }
   });
 
   document.querySelectorAll('.mode-chip').forEach(ch => {
@@ -1307,7 +1177,7 @@
     });
   });
 
-  // ---------------- DRAWER (INDEX + QR + COPY/PASTE SYNC) ----------------
+  // ---------------- DRAWER + WORKING QR CODE ----------------
   function openDrawer() {
     const list = $('op-stats-list');
     list.innerHTML = '';
@@ -1322,15 +1192,14 @@
       list.appendChild(row);
     }
 
-    // Compact payload for QR + Copy/Paste
-    const token = 'SIG-' + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+    const token = encodeSync(state);
     $('sync-code').value = token;
 
-    // QR encodes URL with #sync= if hosted via http(s), else raw token
-    const qrPayload = location.protocol.startsWith('http')
-      ? `${location.origin}${location.pathname}#sync=${token}`
-      : token;
-    try { QR.draw($('qr-canvas'), qrPayload); } catch {}
+    const baseUrl = location.protocol.startsWith('http')
+      ? `${location.origin}${location.pathname}`
+      : HOST_FALLBACK;
+    const syncUrl = `${baseUrl}#sync=${encodeURIComponent(token)}`;
+    $('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(syncUrl)}`;
 
     const tList = $('tricks-list');
     tList.innerHTML = '';
@@ -1356,16 +1225,17 @@
   });
 
   $('btn-import-sync').addEventListener('click', () => {
-    const code = prompt('Füge deinen SIG-Sync-Code ein:');
+    const code = prompt('Füge deinen SIG2-Sync-Code ein:');
     if (!code) return;
-    const clean = code.includes('SIG-') ? code.slice(code.indexOf('SIG-') + 4) : code;
     try {
-      const parsed = JSON.parse(decodeURIComponent(escape(atob(clean))));
-      if (parsed && parsed.ops) {
-        state = parsed;
+      const imported = decodeSync(code);
+      if (imported && imported.ops) {
+        state = imported;
         saveState();
+        document.documentElement.setAttribute('data-theme', state.theme || 'dark');
         renderHUD();
         openDrawer();
+        showToast('SYNC IMPORTIERT ✓');
       }
     } catch { alert('Ungültiger Sync-Code.'); }
   });
