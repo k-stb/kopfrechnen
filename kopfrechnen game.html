@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SIGNAL" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#070708" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070708'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23e4ff3b' font-family='Georgia,serif' font-size='34'%3E%E2%88%91%3C/text%3E%3C/svg%3E" />
+<title>SIGNAL // Mental Math Studio</title>
+<style>
+  :root {
+    --bg: #070708;
+    --bg-elev: #111114;
+    --surface: rgba(18, 18, 22, 0.84);
+    --border: rgba(255, 255, 255, 0.11);
+    --border-strong: rgba(255, 255, 255, 0.24);
+    --text: #f3f2ed;
+    --muted: #8a8a93;
+    --accent: #e4ff3b;
+    --accent-ink: #070708;
+    --signal: #ff4d1c;
+    --ok: #34d399;
+    --glyph-rgb: 243, 242, 237;
+    --glyph-alpha: 0.13;
+    --font-display: "Georgia", "Times New Roman", serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Inter, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  }
+
+  [data-theme="light"] {
+    --bg: #eceae4;
+    --bg-elev: #f7f6f2;
+    --surface: rgba(247, 246, 242, 0.88);
+    --border: rgba(15, 15, 18, 0.12);
+    --border-strong: rgba(15, 15, 18, 0.28);
+    --text: #111113;
+    --muted: #686762;
+    --accent: #ff4d1c;
+    --accent-ink: #ffffff;
+    --signal: #ff4d1c;
+    --ok: #059669;
+    --glyph-rgb: 17, 17, 19;
+    --glyph-alpha: 0.09;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  #glyph-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .shell {
+    position: relative;
+    z-index: 1;
+    height: 100dvh;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  /* Floating Top Pill Dock */
+  .dock {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px 6px 14px;
+    background: var(--surface);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .dock-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ok); box-shadow: 0 0 10px var(--ok); flex-shrink: 0;
+  }
+  .status-dot.overdrive { background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+  .status-dot.boss { background: var(--signal); box-shadow: 0 0 14px var(--signal); }
+
+  .clock { color: var(--muted); display: none; }
+  @media (min-width: 560px) { .clock { display: inline; } }
+
+  .dock-actions { display: flex; align-items: center; gap: 6px; }
+
+  .dock-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.18s;
+    white-space: nowrap;
+  }
+  .dock-btn:hover { border-color: var(--border-strong); background: rgba(128,128,128,0.1); }
+  .dock-btn.primary {
+    background: var(--accent); color: var(--accent-ink);
+    border-color: var(--accent); font-weight: 700;
+  }
+
+  /* Meta Strip */
+  .meta-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 2px 8px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .meta-strip strong { color: var(--text); font-weight: 600; }
+
+  /* Center Stage */
+  .stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    min-height: 0;
+  }
+
+  .modes {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .mode-chip {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.18s;
+  }
+  .mode-chip.active {
+    border-color: var(--text);
+    color: var(--text);
+    background: rgba(128,128,128,0.12);
+  }
+
+  .bars {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+  .bar-track {
+    width: 100%; height: 3px; background: var(--border);
+    position: relative; overflow: hidden;
+  }
+  .bar-fill { height: 100%; width: 0%; background: var(--text); transition: width 0.2s linear; }
+  .bar-fill.ghost { background: var(--signal); transition: none; }
+  .bar-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+  }
+
+  .tag-line {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    min-height: 16px;
+    text-align: center;
+  }
+  .tag-line.bonus { color: var(--accent); font-weight: 700; }
+  .tag-line.recall { color: var(--signal); font-weight: 700; }
+
+  .equation {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 10vw, 78px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    text-align: center;
+    margin: 4px 0 10px;
+    transition: transform 0.12s ease;
+  }
+  .equation.pop { transform: scale(1.04); }
+  .equation.shake { animation: shake 0.28s; color: var(--signal); }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  .answer-readout {
+    min-width: 190px;
+    height: 52px;
+    border-bottom: 2px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .answer-readout.correct { border-color: var(--ok); color: var(--ok); }
+  .answer-readout.empty { color: var(--muted); opacity: 0.4; }
+
+  .feedback-line {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    min-height: 18px;
+    text-align: center;
+    max-width: 440px;
+    line-height: 1.4;
+  }
+  .feedback-line.strategy { color: var(--text); }
+
+  /* Summary Box */
+  .summary-box {
+    width: 100%;
+    max-width: 460px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 16px;
+    border-radius: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .summary-box.show { display: flex; }
+  .summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+  }
+  .metric-val { font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
+  .metric-lbl { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; }
+
+  .boss-cta {
+    display: none;
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid var(--signal);
+    background: rgba(255, 77, 28, 0.14);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+  .boss-cta.show { display: block; }
+
+  /* Controls & Mobile Numpad */
+  .controls-area {
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .start-cta {
+    width: 100%;
+    padding: 15px;
+    border-radius: 999px;
+    border: none;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .start-cta:active { transform: scale(0.98); }
+
+  .numpad {
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+  .numpad.active { display: grid; }
+
+  .key {
+    height: 52px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    transition: background 0.08s, transform 0.06s;
+  }
+  .key:active { background: var(--text); color: var(--bg); transform: scale(0.96); }
+  .key.fn { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .key.confirm { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+
+  /* Footer */
+  .footer-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+  .dots { display: flex; gap: 5px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); }
+  .dot.gift { background: var(--signal); }
+  .dot.filled { background: var(--text); }
+
+  /* Drawer */
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    display: none;
+    justify-content: flex-end;
+  }
+  .drawer-backdrop.open { display: flex; }
+
+  .drawer {
+    width: min(440px, 100%);
+    height: 100%;
+    background: var(--bg-elev);
+    border-left: 1px solid var(--border);
+    padding: 22px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .drawer-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .drawer-head h2 { font-family: var(--font-display); font-size: 24px; font-weight: 400; }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .op-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 52px 52px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .op-bar { height: 4px; background: var(--border); }
+  .op-bar-fill { height: 100%; background: var(--text); }
+
+  .sync-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .qr-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    margin-bottom: 10px;
+  }
+  #qr-canvas {
+    background: #ffffff;
+    padding: 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+
+  .trick-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .trick-item span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 3px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="glyph-canvas"></canvas>
+
+<div class="shell">
+  <header class="dock">
+    <div class="dock-left">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="clock" id="ui-clock">00:00:00</span>
+      <span id="ui-status-text">FLOW 85%</span>
+    </div>
+    <div class="dock-actions">
+      <button class="dock-btn" id="btn-theme" title="Dark / Halden Paper">◐</button>
+      <button class="dock-btn" id="btn-sound">SFX ON</button>
+      <button class="dock-btn" id="btn-index">INDEX <span id="ui-lvl-badge">01</span></button>
+    </div>
+  </header>
+
+  <div class="meta-strip">
+    <span>ID <strong id="ui-device-id">---</strong></span>
+    <span>XP <strong id="ui-xp">0</strong> · COMBO <strong id="ui-combo">0×</strong></span>
+    <span>RECALL <strong id="ui-hate-count">0</strong> · ACC <strong id="ui-acc">85%</strong></span>
+  </div>
+
+  <main class="stage">
+    <div class="modes" id="mode-bar">
+      <button class="mode-chip active" data-mode="sprint10">01 Sprint</button>
+      <button class="mode-chip" data-mode="sec60">02 60s</button>
+      <button class="mode-chip" data-mode="audit">03 Finance %</button>
+      <button class="mode-chip" data-mode="weakness">04 Weakness</button>
+      <button class="mode-chip" data-mode="estimate">05 Audit ±5%</button>
+    </div>
+
+    <div class="bars">
+      <div class="bar-labels">
+        <span id="ui-progress-lbl">00 / 10</span>
+        <span id="ui-ghost-lbl">GHOST PACER</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="ui-progress"></div></div>
+      <div class="bar-track"><div class="bar-fill ghost" id="ui-ghost"></div></div>
+    </div>
+
+    <div class="tag-line" id="ui-tag">ADAPTIVE ENGINE · 85% SWEET-SPOT</div>
+    <div class="equation" id="ui-eq">Ready.</div>
+    <div class="answer-readout empty" id="ui-answer">_</div>
+    <div class="feedback-line" id="ui-feedback">Numpad oder Tastatur nutzen.</div>
+
+    <div class="summary-box" id="summary-box">
+      <div class="section-label" style="margin:0;">SESSION COMPLETE · ZEIGARNIK OPEN LOOP</div>
+      <div class="summary-metrics">
+        <div><div class="metric-val" id="sum-acc">0%</div><div class="metric-lbl">Accuracy</div></div>
+        <div><div class="metric-val" id="sum-avg">0.0s</div><div class="metric-lbl">Ø Speed</div></div>
+        <div><div class="metric-val" id="sum-xp">+0</div><div class="metric-lbl">Earned XP</div></div>
+      </div>
+      <div style="font-size:12px; line-height:1.45; color:var(--muted);" id="sum-cliffhanger"></div>
+      <button class="boss-cta" id="btn-boss">⚡ STEMPELKARTE 10/10 · OVERCLOCK BOSS-RUNDE (30s · 2.5× XP)</button>
+    </div>
+  </main>
+
+  <section class="controls-area">
+    <button class="start-cta" id="btn-start">Start Session (Enter)</button>
+    <div class="numpad" id="numpad">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key fn" id="key-left" data-k="skip">Skip</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key fn" data-k="del">⌫</button>
+    </div>
+  </section>
+
+  <footer class="footer-strip">
+    <div class="dots" id="ui-stamps"></div>
+    <span id="ui-stamp-lbl">CARD 2 / 10</span>
+  </footer>
+</div>
+
+<!-- EDITORIAL DRAWER -->
+<div class="drawer-backdrop" id="drawer-backdrop">
+  <div class="drawer">
+    <div class="drawer-head">
+      <h2>Index &amp; Telemetry</h2>
+      <button class="dock-btn" id="btn-close-drawer">ESC</button>
+    </div>
+
+    <div>
+      <div class="section-label">Adaptive Mastery Profile</div>
+      <div id="op-stats-list"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Sync (QR-Code + Copy/Paste)</div>
+      <div class="qr-wrap">
+        <canvas id="qr-canvas" width="116" height="116"></canvas>
+        <div style="font-size:11px; color:var(--muted); line-height:1.45;">
+          Scanne den QR-Code (z. B. über GitHub Pages) oder kopiere den Sync-Code darunter, um deinen Stand inkl. Hass-Aufgaben &amp; Profil auf ein anderes Gerät zu übertragen.
+        </div>
+      </div>
+      <input class="sync-input" id="sync-code" readonly />
+      <div style="display:flex; gap:8px;">
+        <button class="dock-btn primary" id="btn-copy-sync">Code kopieren</button>
+        <button class="dock-btn" id="btn-import-sync">Code einfügen</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Freigeschaltete Rechentricks</div>
+      <div id="tricks-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------------- COMPACT OFFLINE QR RENDERER (BYTE MODE, ECC-L) ----------------
+  // Minimal deterministic QR matrix encoder for short sync URLs/tokens
+  const QR = (() => {
+    const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+    for (let i = 0, x = 1; i < 255; i++) {
+      EXP[i] = x; LOG[x] = i;
+      x = (x << 1) ^ (x & 128 ? 0x11d : 0);
+    }
+    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+    const mul = (a, b) => (a && b) ? EXP[LOG[a] + LOG[b]] : 0;
+
+    function rsPoly(ecLen) {
+      let p = [1];
+      for (let i = 0; i < ecLen; i++) {
+        const next = new Array(p.length + 1).fill(0);
+        for (let j = 0; j < p.length; j++) {
+          next[j] ^= p[j];
+          next[j + 1] ^= mul(p[j], EXP[i]);
+        }
+        p = next;
+      }
+      return p;
+    }
+
+    function rsEncode(data, ecLen) {
+      const gen = rsPoly(ecLen);
+      const res = new Uint8Array(data.length + ecLen);
+      res.set(data);
+      for (let i = 0; i < data.length; i++) {
+        const f = res[i];
+        if (f) for (let j = 0; j < gen.length; j++) res[i + j] ^= mul(gen[j], f);
+      }
+      return res.slice(data.length);
+    }
+
+    // Version table (ECC-L): [version, size, totalCodewords, ecPerBlock, blocks, alignPos[]]
+    const VERS = [
+      [2, 25, 44, 10, 1, [6,18]],
+      [4, 33, 100, 20, 1, [6,26]],
+      [6, 41, 172, 18, 2, [6,34]],
+      [9, 53, 292, 30, 2, [6,26,46]]
+    ];
+
+    function draw(canvas, text) {
+      const bytes = new TextEncoder().encode(text);
+      const vSpec = VERS.find(v => (v[2] - v[3] * v[4]) - 3 >= bytes.length) || VERS[VERS.length - 1];
+      const [ver, size, totalCW, ecCW, blocks, align] = vSpec;
+      const dataCW = totalCW - ecCW * blocks;
+
+      // Bit buffer
+      const bits = [];
+      const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+      pushBits(4, 4); // Byte mode
+      pushBits(Math.min(bytes.length, dataCW - 2), 8);
+      for (let i = 0; i < Math.min(bytes.length, dataCW - 2); i++) pushBits(bytes[i], 8);
+      pushBits(0, 4);
+      while (bits.length % 8) bits.push(0);
+
+      const data = [];
+      for (let i = 0; i < bits.length; i += 8) {
+        let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+        data.push(b);
+      }
+      for (let i = 0; data.length < dataCW; i++) data.push(i % 2 ? 0x11 : 0xec);
+
+      // Split blocks & interleave
+      const bSize = Math.floor(dataCW / blocks);
+      const dBlocks = [], eBlocks = [];
+      for (let b = 0; b < blocks; b++) {
+        const chunk = data.slice(b * bSize, (b + 1) * bSize);
+        dBlocks.push(chunk);
+        eBlocks.push(Array.from(rsEncode(chunk, ecCW)));
+      }
+      const stream = [];
+      for (let i = 0; i < bSize; i++) for (let b = 0; b < blocks; b++) stream.push(dBlocks[b][i]);
+      for (let i = 0; i < ecCW; i++) for (let b = 0; b < blocks; b++) stream.push(eBlocks[b][i]);
+
+      // Matrix
+      const m = Array.from({ length: size }, () => new Int8Array(size).fill(-1));
+      const setF = (r, c, v) => { if (r >= 0 && c >= 0 && r < size && c < size) m[r][c] = v ? 2 : 3; };
+      const finder = (r, c) => {
+        for (let dr = -1; dr <= 7; dr++) for (let dc = -1; dc <= 7; dc++) {
+          const on = (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) &&
+            (dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4));
+          setF(r + dr, c + dc, on);
+        }
+      };
+      finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+      for (let i = 8; i < size - 8; i++) { setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
+      for (const r of align) for (const c of align) {
+        if (m[r][c] !== -1) continue;
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+          setF(r + dr, c + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
+      }
+      // Reserve format info
+      for (let i = 0; i < 9; i++) {
+        if (m[8][i] === -1) m[8][i] = 3;
+        if (m[i][8] === -1) m[i][8] = 3;
+      }
+      for (let i = 0; i < 8; i++) {
+        if (m[8][size - 1 - i] === -1) m[8][size - 1 - i] = 3;
+        if (m[size - 1 - i][8] === -1) m[size - 1 - i][8] = 3;
+      }
+      setF(size - 8, 8, 1);
+
+      // Place data bits with mask 0 ((r+c)%2==0)
+      let bi = 0;
+      for (let col = size - 1; col > 0; col -= 2) {
+        if (col === 6) col--;
+        for (let i = 0; i < size; i++) {
+          const r = ((col + 1) & 2) ? i : size - 1 - i;
+          for (let c = col; c >= col - 1; c--) {
+            if (m[r][c] !== -1) continue;
+            const byte = stream[bi >> 3] || 0;
+            let bit = (byte >> (7 - (bi & 7))) & 1;
+            if ((r + c) % 2 === 0) bit ^= 1;
+            m[r][c] = bit;
+            bi++;
+          }
+        }
+      }
+
+      // Format bits for ECC-L (01) + Mask 0 (000) -> 0x77c4
+      const fmt = 0x77c4;
+      for (let i = 0; i < 15; i++) {
+        const bit = (fmt >> i) & 1;
+        const v = bit ? 2 : 3;
+        if (i < 6) m[i][8] = v;
+        else if (i < 8) m[i + 1][8] = v;
+        else m[size - 15 + i][8] = v;
+        if (i < 8) m[8][size - 1 - i] = v;
+        else if (i < 9) m[8][15 - i] = v;
+        else m[8][14 - i] = v;
+      }
+
+      const c2 = canvas.getContext('2d');
+      const scale = Math.floor(canvas.width / size);
+      const off = Math.floor((canvas.width - size * scale) / 2);
+      c2.fillStyle = '#ffffff';
+      c2.fillRect(0, 0, canvas.width, canvas.height);
+      c2.fillStyle = '#070708';
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (m[r][c] === 1 || m[r][c] === 2) {
+            c2.fillRect(off + c * scale, off + r * scale, scale, scale);
+          }
+        }
+      }
+    }
+    return { draw };
+  })();
+
+  // ---------------- SUBTLE REACTIVE GLYPH FIELD ----------------
+  const canvas = document.getElementById('glyph-canvas');
+  const ctx = canvas.getContext('2d');
+  const GLYPHS = ['.', '+', '-', '=', '#', '×', '÷'];
+  let pts = [], pulseWave = { active: false, r: 0, x: 0, y: 0 }, pointer = { x: -999, y: -999 };
+  let combo = 0, overdrive = false, bossMode = false;
+
+  function initGlyphs() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    pts = [];
+    const step = window.innerWidth < 600 ? 44 : 50;
+    for (let y = step / 2; y < canvas.height; y += step) {
+      for (let x = step / 2; x < canvas.width; x += step) {
+        pts.push({ ox: x, oy: y, x, y, vx: 0, vy: 0, ch: GLYPHS[(x + y) % GLYPHS.length] });
+      }
+    }
+  }
+  window.addEventListener('resize', initGlyphs);
+  window.addEventListener('pointermove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
+  initGlyphs();
+
+  function triggerPulse() {
+    pulseWave = { active: true, r: 10, x: canvas.width / 2, y: canvas.height / 2 };
+  }
+
+  let t = 0;
+  function renderGlyphs() {
+    t += 0.014;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const style = getComputedStyle(document.documentElement);
+    const rgb = style.getPropertyValue('--glyph-rgb').trim();
+    const baseA = parseFloat(style.getPropertyValue('--glyph-alpha')) || 0.12;
+    const dynAlpha = Math.min(0.22, baseA + (overdrive ? 0.045 : Math.min(0.03, combo * 0.004)));
+    ctx.fillStyle = `rgba(${rgb}, ${dynAlpha})`;
+    ctx.font = '12px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+
+    if (pulseWave.active) {
+      pulseWave.r += 20;
+      if (pulseWave.r > Math.max(canvas.width, canvas.height)) pulseWave.active = false;
+    }
+
+    const waveAmp = overdrive ? 3.2 : (combo >= 3 ? 1.4 : 0);
+
+    for (const p of pts) {
+      const dx = p.x - pointer.x, dy = p.y - pointer.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 100 && dist > 1) {
+        const f = (100 - dist) / 100;
+        p.vx += (dx / dist) * f * 1.2;
+        p.vy += (dy / dist) * f * 1.2;
+      }
+      if (pulseWave.active) {
+        const pdx = p.x - pulseWave.x, pdy = p.y - pulseWave.y;
+        const pd = Math.hypot(pdx, pdy);
+        if (Math.abs(pd - pulseWave.r) < 34 && pd > 1) {
+          p.vx += (pdx / pd) * 1.8;
+          p.vy += (pdy / pd) * 1.8;
+        }
+      }
+      const targetY = p.oy + (waveAmp ? Math.sin(t + p.ox * 0.012) * waveAmp : 0);
+      p.vx += (p.ox - p.x) * 0.08;
+      p.vy += (targetY - p.y) * 0.08;
+      p.vx *= 0.82; p.vy *= 0.82;
+      p.x += p.vx; p.y += p.vy;
+      ctx.fillText(p.ch, p.x, p.y);
+    }
+    requestAnimationFrame(renderGlyphs);
+  }
+  renderGlyphs();
+
+  // ---------------- RHYTHMIC AUDIO + HAPTICS ----------------
+  let audioCtx = null, sfxOn = true;
+  const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
+
+  function tone(freq, dur = 0.07, type = 'sine', vol = 0.09, delay = 0) {
+    if (!sfxOn) return;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+    g.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(audioCtx.currentTime + delay);
+    o.stop(audioCtx.currentTime + delay + dur);
+  }
+
+  function vibe(pattern) {
+    if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch {} }
+  }
+
+  // ---------------- TRICKS ----------------
+  const TRICKS = [
+    ["01 · PROZENT-UMKEHR", "16% von 25 ist exakt dasselbe wie 25% von 16 (= 4)."],
+    ["02 · MAL 11", "35 × 11 → Ziffern addieren (3+5=8) und in die Mitte setzen → 385."],
+    ["03 · MAL 5", "Halbieren und eine 0 anhängen: 48 × 5 → 240."],
+    ["04 · QUADRATE AUF 5", "35² → 3 × 4 = 12, dann 25 anhängen → 1225."],
+    ["05 · MAL 9", "Mal 10 rechnen und die Zahl abziehen: 37 × 9 = 370 − 37 = 333."],
+    ["06 · MAL 25", "Durch 4 teilen und zwei Nullen anhängen: 36 × 25 = 900."],
+    ["07 · AUDIT-SCHÄTZUNG", "18,4% von 420k ≈ 20% (84k) minus ~1,5% (6,3k) ≈ 77,7k."]
+  ];
+
+  // ---------------- STATE + SPACED REPETITION ----------------
+  function genDeviceId() {
+    return 'DEV-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  }
+
+  const DEFAULT_OPS = {
+    '+': { n: 4, ok: 4, avgMs: 2600, lvl: 1 },
+    '-': { n: 4, ok: 3, avgMs: 2900, lvl: 1 },
+    '×': { n: 4, ok: 3, avgMs: 3200, lvl: 1 },
+    '÷': { n: 2, ok: 2, avgMs: 3400, lvl: 1 },
+    '%': { n: 2, ok: 2, avgMs: 3600, lvl: 1 }
+  };
+
+  let state = JSON.parse(localStorage.getItem('signal_math_v3') || 'null') || {
+    deviceId: genDeviceId(),
+    theme: 'dark',
+    xp: 0,
+    stamps: 2,
+    history: [1,1,1,1,1,0,1,1,1,1],
+    ops: JSON.parse(JSON.stringify(DEFAULT_OPS)),
+    hateQueue: [], // { op, text, answer, hint, due }
+    openLoop: null,
+    tricksUnlocked: 2
+  };
+
+  function saveState() { localStorage.setItem('signal_math_v3', JSON.stringify(state)); }
+
+  // Auto-import from URL hash (#sync=SIG-...)
+  if (location.hash.startsWith('#sync=SIG-')) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(10)))));
+      if (parsed && parsed.ops) { state = parsed; saveState(); history.replaceState(null, '', location.pathname); }
+    } catch {}
+  }
+
+  // ---------------- SESSION VARS ----------------
+  let mode = 'sprint10', running = false, current = null, typed = '';
+  let qIdx = 0, qTotal = 10;
+  let sessOk = 0, sessTotal = 0, sessXp = 0, sessTimes = [];
+  let qStart = 0, ghostRaf = null, timerInt = null, timeLeft = 60;
+
+  const $ = id => document.getElementById(id);
+  const uiEq = $('ui-eq'), uiAns = $('ui-answer'), uiTag = $('ui-tag'), uiFb = $('ui-feedback');
+  const btnStart = $('btn-start'), numpad = $('numpad'), summaryBox = $('summary-box');
+  const keyLeft = $('key-left'), btnBoss = $('btn-boss');
+
+  setInterval(() => { $('ui-clock').textContent = new Date().toTimeString().slice(0, 8); }, 1000);
+
+  document.documentElement.setAttribute('data-theme', state.theme || 'dark');
+  $('btn-theme').addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', state.theme);
+    saveState();
+  });
+  $('btn-sound').addEventListener('click', () => {
+    sfxOn = !sfxOn;
+    $('btn-sound').textContent = sfxOn ? 'SFX ON' : 'SFX OFF';
+  });
+
+  // ---------------- ADAPTIVE + SPACED REPETITION GENERATOR ----------------
+  const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+
+  function pickAdaptiveOp() {
+    if (mode === 'audit') return '%';
+    const keys = ['+', '-', '×', '÷'];
+    if (mode === 'weakness') {
+      return keys.sort((a, b) => {
+        const sa = (state.ops[a].ok / Math.max(1, state.ops[a].n)) - (state.ops[a].avgMs / 10000);
+        const sb = (state.ops[b].ok / Math.max(1, state.ops[b].n)) - (state.ops[b].avgMs / 10000);
+        return sa - sb;
+      })[0];
+    }
+    const weights = keys.map(k => {
+      const o = state.ops[k];
+      return Math.max(0.2, (1.15 - o.ok / Math.max(1, o.n)) + (o.avgMs / 6000));
+    });
+    let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < keys.length; i++) { r -= weights[i]; if (r <= 0) return keys[i]; }
+    return '+';
+  }
+
+  function buildProblem() {
+    // Audit ±5% Estimation Mode
+    if (mode === 'estimate') {
+      const templates = [
+        () => {
+          const p = rand(11, 48) + (rand(0, 1) ? 0.5 : 0);
+          const base = rand(12, 95) * 10;
+          const exact = Math.round((p / 100) * base);
+          return { op: '%', text: `${p}% · ${base}`, answer: String(exact), exact, isEst: true,
+            hint: `≈ ${Math.round(p/10)*10}% von ${base} = ${Math.round(Math.round(p/10)*0.1*base)} (exakt ${exact})` };
+        },
+        () => {
+          const a = rand(18, 64) * 10 + rand(1, 9);
+          const b = rand(12, 39);
+          const exact = a * b;
+          return { op: '×', text: `${a} × ${b}`, answer: String(exact), exact, isEst: true,
+            hint: `≈ ${Math.round(a/10)*10} × ${Math.round(b/10)*10} = ${Math.round(a/10)*10 * Math.round(b/10)*10} (exakt ${exact})` };
+        }
+      ];
+      const p = templates[rand(0, templates.length - 1)]();
+      p.targetMs = 4500;
+      p.bonus = false;
+      return p;
+    }
+
+    // Check Spaced Repetition Hate-Queue (every few questions)
+    if (!bossMode && state.hateQueue.length > 0 && mode !== 'audit') {
+      state.hateQueue.forEach(h => h.due--);
+      const dueIdx = state.hateQueue.findIndex(h => h.due <= 0);
+      if (dueIdx !== -1) {
+        const item = state.hateQueue[dueIdx];
+        return {
+          op: item.op, text: item.text, answer: item.answer, hint: item.hint,
+          isRecall: true, recallIdx: dueIdx, bonus: false,
+          targetMs: state.ops[item.op]?.avgMs || 3000
+        };
+      }
+    }
+
+    const op = pickAdaptiveOp();
+    const lvl = state.ops[op].lvl || 1;
+    let a, b, ans, text, hint;
+
+    if (op === '%') {
+      const sets = [
+        [10, rand(2, 48) * 10], [20, rand(2, 35) * 5], [25, rand(2, 28) * 4],
+        [50, rand(4, 96) * 2], [5, rand(2, 40) * 20], [15, rand(2, 18) * 20],
+        [16, 25], [12, 50], [8, 25], [40, rand(2, 25) * 5]
+      ];
+      const [p, base] = sets[rand(0, sets.length - 1)];
+      text = `${p}% · ${base}`;
+      ans = Math.round((p / 100) * base);
+      hint = p === 15 ? `10% (${base/10}) + 5% (${base/20}) = ${ans}` : `${p}% von ${base} = ${ans}`;
+    } else if (op === '+') {
+      const max = [25, 65, 140, 320, 650][lvl - 1];
+      a = rand(Math.floor(max * 0.25), max); b = rand(Math.floor(max * 0.2), max);
+      ans = a + b; text = `${a} + ${b}`;
+      const tens = Math.floor(b / 10) * 10, ones = b % 10;
+      hint = `${a} + ${tens} = ${a + tens}, + ${ones} = ${ans}`;
+    } else if (op === '-') {
+      const max = [30, 85, 180, 380, 720][lvl - 1];
+      a = rand(Math.floor(max * 0.4), max); b = rand(Math.floor(max * 0.15), a - 2);
+      ans = a - b; text = `${a} − ${b}`;
+      const tens = Math.floor(b / 10) * 10, ones = b % 10;
+      hint = `${a} − ${tens} = ${a - tens}, − ${ones} = ${ans}`;
+    } else if (op === '×') {
+      const ranges = [[3,9,3,9], [4,12,4,12], [6,16,5,12], [11,24,6,14], [14,34,7,18]][lvl - 1];
+      a = rand(ranges[0], ranges[1]); b = rand(ranges[2], ranges[3]);
+      ans = a * b; text = `${a} × ${b}`;
+      const tA = Math.floor(a / 10) * 10, oA = a % 10;
+      hint = a > 10 ? `(${tA}×${b}) + (${oA}×${b}) = ${tA*b} + ${oA*b} = ${ans}` : `${a} × ${b} = ${ans}`;
+    } else {
+      const ranges = [[2,9,2,9], [3,12,4,12], [5,14,6,16], [6,16,9,24], [8,19,12,32]][lvl - 1];
+      b = rand(ranges[0], ranges[1]); ans = rand(ranges[2], ranges[3]);
+      a = b * ans; text = `${a} ÷ ${b}`;
+      hint = `${b} × ${ans} = ${a}`;
+    }
+
+    const baseTarget = state.ops[op].avgMs || 2800;
+    return {
+      op, text, answer: String(ans), hint,
+      bonus: !bossMode && Math.random() < 0.2,
+      targetMs: bossMode ? Math.round(baseTarget * 0.85) : baseTarget
+    };
+  }
+
+  function addHateTask(prob) {
+    if (prob.isEst) return;
+    const exists = state.hateQueue.find(h => h.text === prob.text);
+    if (exists) { exists.due = 4; return; }
+    state.hateQueue.push({ op: prob.op, text: prob.text, answer: prob.answer, hint: prob.hint, due: 4 });
+    if (state.hateQueue.length > 12) state.hateQueue.shift();
+  }
+
+  function recordResult(prob, isOk, ms) {
+    const o = state.ops[prob.op];
+    if (o) {
+      o.n++;
+      if (isOk) o.ok++;
+      if (isOk && ms < 15000) o.avgMs = Math.round(o.avgMs * 0.78 + ms * 0.22);
+      const opAcc = o.ok / o.n;
+      if (o.n >= 3) {
+        if (opAcc > 0.89 && o.avgMs < 2700 && o.lvl < 5) o.lvl++;
+        else if (opAcc < 0.72 && o.lvl > 1) o.lvl--;
+      }
+    }
+    state.history.push(isOk ? 1 : 0);
+    if (state.history.length > 15) state.history.shift();
+
+    // Manage Spaced Repetition Queue
+    if (!isOk || ms > 4200) {
+      addHateTask(prob);
+    } else if (prob.isRecall && ms <= 3500) {
+      state.hateQueue.splice(prob.recallIdx, 1);
+    }
+  }
+
+  // ---------------- HUD ----------------
+  function renderHUD() {
+    const lvl = Math.floor(state.xp / 250) + 1;
+    $('ui-lvl-badge').textContent = String(lvl).padStart(2, '0');
+    $('ui-device-id').textContent = state.deviceId;
+    $('ui-xp').textContent = state.xp;
+    $('ui-combo').textContent = combo + '×';
+    $('ui-hate-count').textContent = state.hateQueue.length;
+
+    const acc = Math.round((state.history.reduce((a, b) => a + b, 0) / state.history.length) * 100);
+    $('ui-acc').textContent = acc + '%';
+
+    const dot = $('status-dot');
+    dot.className = 'status-dot' + (bossMode ? ' boss' : (overdrive ? ' overdrive' : ''));
+    $('ui-status-text').textContent = bossMode ? 'OVERCLOCK 2.5×' : (overdrive ? 'OVERDRIVE 2×' : `FLOW ${acc}%`);
+
+    const stampsEl = $('ui-stamps');
+    stampsEl.innerHTML = '';
+    for (let i = 0; i < 10; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < 2 ? ' gift' : (i < state.stamps ? ' filled' : ''));
+      stampsEl.appendChild(d);
+    }
+    $('ui-stamp-lbl').textContent = `CARD ${state.stamps} / 10`;
+  }
+
+  function startGhost(targetMs) {
+    cancelAnimationFrame(ghostRaf);
+    const bar = $('ui-ghost');
+    $('ui-ghost-lbl').textContent = (bossMode ? 'OVERCLOCK ' : 'GHOST ') + (targetMs / 1000).toFixed(1) + 's';
+    function tick() {
+      if (!running) return;
+      const pct = Math.min(100, ((performance.now() - qStart) / targetMs) * 100);
+      bar.style.width = pct + '%';
+      if (pct < 100) ghostRaf = requestAnimationFrame(tick);
+    }
+    ghostRaf = requestAnimationFrame(tick);
+  }
+
+  // ---------------- GAME FLOW ----------------
+  function nextQ() {
+    if (!bossMode && mode === 'sprint10' && qIdx >= qTotal) {
+      finishSession();
+      return;
+    }
+    current = buildProblem();
+    typed = '';
+    uiAns.textContent = '_';
+    uiAns.className = 'answer-readout empty';
+
+    // In Estimate mode, left button becomes OK submit
+    if (current.isEst) {
+      keyLeft.textContent = 'OK';
+      keyLeft.dataset.k = 'submit';
+      keyLeft.classList.add('confirm');
+    } else {
+      keyLeft.textContent = 'Skip';
+      keyLeft.dataset.k = 'skip';
+      keyLeft.classList.remove('confirm');
+    }
+
+    uiEq.textContent = current.text;
+    uiEq.classList.remove('shake');
+    uiEq.classList.add('pop');
+    setTimeout(() => uiEq.classList.remove('pop'), 110);
+
+    uiTag.className = 'tag-line' + (current.isRecall ? ' recall' : (current.bonus ? ' bonus' : ''));
+    uiTag.textContent = current.isRecall
+      ? 'SPACED REPETITION · HASS-AUFGABE'
+      : (current.bonus ? 'MYSTERY BONUS · 3× XP' : (current.isEst ? 'AUDIT PLAUSIBILITÄT · ±5% TOLERANZ' : `${current.op} · LVL ${state.ops[current.op].lvl}`));
+
+    if (!bossMode && mode === 'sprint10') {
+      $('ui-progress-lbl').textContent = `${String(qIdx + 1).padStart(2,'0')} / ${qTotal}`;
+      $('ui-progress').style.width = ((qIdx / qTotal) * 100) + '%';
+    }
+
+    qStart = performance.now();
+    startGhost(current.targetMs);
+  }
+
+  function startSession(isBoss = false) {
+    bossMode = isBoss;
+    running = true;
+    qIdx = 0; combo = 0; overdrive = false;
+    sessOk = 0; sessTotal = 0; sessXp = 0; sessTimes = [];
+    summaryBox.classList.remove('show');
+    btnBoss.classList.remove('show');
+    uiEq.style.display = 'block';
+    uiAns.style.display = 'flex';
+    btnStart.style.display = 'none';
+    numpad.classList.add('active');
+    uiFb.className = 'feedback-line';
+    uiFb.textContent = mode === 'estimate' ? 'Schätzung eintippen & mit OK / Enter bestätigen.' : 'Auto-Submit aktiv.';
+
+    if (bossMode || mode === 'sec60') {
+      timeLeft = bossMode ? 30 : 60;
+      const totalT = timeLeft;
+      $('ui-progress-lbl').textContent = timeLeft + 's';
+      clearInterval(timerInt);
+      timerInt = setInterval(() => {
+        timeLeft--;
+        $('ui-progress-lbl').textContent = timeLeft + 's';
+        $('ui-progress').style.width = (((totalT - timeLeft) / totalT) * 100) + '%';
+        if (timeLeft <= 0) finishSession();
+      }, 1000);
+    }
+
+    nextQ();
+    renderHUD();
+  }
+
+  function handleCorrect(extraNote = '') {
+    const dt = performance.now() - qStart;
+    sessTimes.push(dt);
+    sessOk++; sessTotal++; qIdx++; combo++;
+    if (combo >= 5 && dt < 2600) overdrive = true;
+
+    const beatGhost = dt < current.targetMs;
+    const mult = (current.bonus ? 3 : 1) * (overdrive ? 2 : 1) * (bossMode ? 2.5 : 1);
+    const earned = Math.round((20 + (beatGhost ? 12 : 0) + combo * 2) * mult);
+    state.xp += earned;
+    sessXp += earned;
+
+    uiAns.className = 'answer-readout correct';
+    uiFb.className = 'feedback-line';
+    uiFb.textContent = extraNote
+      ? `+${earned} XP · ${extraNote}`
+      : (beatGhost ? `+${earned} XP · GHOST GESCHLAGEN (${(dt/1000).toFixed(2)}s)` : `+${earned} XP · ${(dt/1000).toFixed(2)}s`);
+
+    // Pentatonic ascending feedback + Haptic
+    const note = PENTATONIC[Math.min(PENTATONIC.length - 1, (combo - 1) % PENTATONIC.length)];
+    tone(note, 0.08, 'triangle', 0.1);
+    vibe(overdrive || current.bonus ? [12, 20, 16] : 10);
+    triggerPulse();
+
+    recordResult(current, true, dt);
+    saveState();
+    renderHUD();
+    setTimeout(nextQ, 120);
+  }
+
+  function handleSkipOrWrong() {
+    sessTotal++; qIdx++; combo = 0; overdrive = false;
+    tone(155, 0.14, 'sawtooth', 0.08);
+    vibe([25, 30, 25]);
+    uiEq.classList.add('shake');
+    uiFb.className = 'feedback-line strategy';
+    uiFb.textContent = `Weg: ${current.hint}`;
+    recordResult(current, false, 6000);
+    saveState();
+    renderHUD();
+    setTimeout(nextQ, 1150);
+  }
+
+  function finishSession() {
+    const wasBoss = bossMode;
+    running = false; bossMode = false;
+    clearInterval(timerInt);
+    cancelAnimationFrame(ghostRaf);
+    numpad.classList.remove('active');
+    btnStart.style.display = 'block';
+    btnStart.textContent = 'Next Session (Enter)';
+    uiEq.style.display = 'none';
+    uiAns.style.display = 'none';
+    $('ui-progress').style.width = '100%';
+    $('ui-ghost').style.width = '0%';
+
+    if (wasBoss) {
+      state.stamps = 2; // Reset to 2 gifted after Boss
+    } else if (state.stamps < 10) {
+      state.stamps++;
+    }
+
+    if (state.stamps === 10) {
+      btnBoss.classList.add('show');
+    }
+
+    if (state.tricksUnlocked < TRICKS.length) state.tricksUnlocked++;
+    state.openLoop = buildProblem().text;
+
+    const acc = sessTotal ? Math.round((sessOk / sessTotal) * 100) : 0;
+    const avg = sessTimes.length ? (sessTimes.reduce((a,b)=>a+b,0) / sessTimes.length / 1000).toFixed(2) : '0.00';
+
+    $('sum-acc').textContent = acc + '%';
+    $('sum-avg').textContent = avg + 's';
+    $('sum-xp').textContent = '+' + sessXp;
+    $('sum-cliffhanger').innerHTML = `Offene Aufgabe für deine nächste Runde: <strong style="color:var(--text)">${state.openLoop}</strong>.`;
+    summaryBox.classList.add('show');
+
+    tone(523.25, 0.09, 'triangle', 0.11, 0);
+    tone(659.25, 0.09, 'triangle', 0.11, 0.07);
+    tone(783.99, 0.15, 'sine', 0.11, 0.14);
+    triggerPulse();
+
+    saveState();
+    renderHUD();
+  }
+
+  function submitEstimate() {
+    if (!typed) { handleSkipOrWrong(); return; }
+    const val = parseFloat(typed);
+    const diffPct = Math.abs(val - current.exact) / current.exact;
+    if (diffPct <= 0.05) {
+      const sign = val >= current.exact ? '+' : '−';
+      handleCorrect(`${sign}${(diffPct*100).toFixed(1)}% (EXAKT ${current.exact})`);
+    } else {
+      handleSkipOrWrong();
+    }
+  }
+
+  function inputKey(k) {
+    if (!running || !current) return;
+    if (k === 'skip') { handleSkipOrWrong(); return; }
+    if (k === 'submit') { submitEstimate(); return; }
+    if (k === 'del') {
+      typed = typed.slice(0, -1);
+      vibe(6);
+    } else if (/^\d$/.test(k) && typed.length < 7) {
+      typed += k;
+      vibe(8);
+      tone(290, 0.025, 'sine', 0.035);
+    }
+    uiAns.textContent = typed || '_';
+    uiAns.classList.toggle('empty', !typed);
+    if (!current.isEst && typed === current.answer) handleCorrect();
+  }
+
+  // ---------------- EVENTS ----------------
+  btnStart.addEventListener('click', () => startSession(false));
+  btnBoss.addEventListener('click', () => startSession(true));
+
+  numpad.addEventListener('pointerdown', e => {
+    const btn = e.target.closest('.key');
+    if (!btn) return;
+    e.preventDefault();
+    inputKey(btn.dataset.k);
+  });
+
+  document.addEventListener('keydown', e => {
+    if ($('drawer-backdrop').classList.contains('open')) {
+      if (e.key === 'Escape') closeDrawer();
+      return;
+    }
+    if (!running) {
+      if (e.key === 'Enter') startSession(false);
+      return;
+    }
+    if (/^\d$/.test(e.key)) inputKey(e.key);
+    else if (e.key === 'Backspace') inputKey('del');
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (current.isEst) submitEstimate();
+      else handleSkipOrWrong();
+    }
+  });
+
+  document.querySelectorAll('.mode-chip').forEach(ch => {
+    ch.addEventListener('click', () => {
+      if (running) return;
+      document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
+      ch.classList.add('active');
+      mode = ch.dataset.mode;
+    });
+  });
+
+  // ---------------- DRAWER (INDEX + QR + COPY/PASTE SYNC) ----------------
+  function openDrawer() {
+    const list = $('op-stats-list');
+    list.innerHTML = '';
+    for (const [op, o] of Object.entries(state.ops)) {
+      const acc = Math.round((o.ok / Math.max(1, o.n)) * 100);
+      const row = document.createElement('div');
+      row.className = 'op-row';
+      row.innerHTML = `<strong>${op}</strong>
+        <div class="op-bar"><div class="op-bar-fill" style="width:${acc}%"></div></div>
+        <span>${acc}%</span>
+        <span style="color:var(--muted)">${(o.avgMs/1000).toFixed(1)}s</span>`;
+      list.appendChild(row);
+    }
+
+    // Compact payload for QR + Copy/Paste
+    const token = 'SIG-' + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+    $('sync-code').value = token;
+
+    // QR encodes URL with #sync= if hosted via http(s), else raw token
+    const qrPayload = location.protocol.startsWith('http')
+      ? `${location.origin}${location.pathname}#sync=${token}`
+      : token;
+    try { QR.draw($('qr-canvas'), qrPayload); } catch {}
+
+    const tList = $('tricks-list');
+    tList.innerHTML = '';
+    TRICKS.slice(0, state.tricksUnlocked).forEach(([title, body]) => {
+      const d = document.createElement('div');
+      d.className = 'trick-item';
+      d.innerHTML = `<span>${title}</span>${body}`;
+      tList.appendChild(d);
+    });
+
+    $('drawer-backdrop').classList.add('open');
+  }
+
+  function closeDrawer() { $('drawer-backdrop').classList.remove('open'); }
+  $('btn-index').addEventListener('click', openDrawer);
+  $('btn-close-drawer').addEventListener('click', closeDrawer);
+  $('drawer-backdrop').addEventListener('click', e => { if (e.target === $('drawer-backdrop')) closeDrawer(); });
+
+  $('btn-copy-sync').addEventListener('click', () => {
+    navigator.clipboard?.writeText($('sync-code').value);
+    $('btn-copy-sync').textContent = 'Kopiert ✓';
+    setTimeout(() => $('btn-copy-sync').textContent = 'Code kopieren', 1500);
+  });
+
+  $('btn-import-sync').addEventListener('click', () => {
+    const code = prompt('Füge deinen SIG-Sync-Code ein:');
+    if (!code) return;
+    const clean = code.includes('SIG-') ? code.slice(code.indexOf('SIG-') + 4) : code;
+    try {
+      const parsed = JSON.parse(decodeURIComponent(escape(atob(clean))));
+      if (parsed && parsed.ops) {
+        state = parsed;
+        saveState();
+        renderHUD();
+        openDrawer();
+      }
+    } catch { alert('Ungültiger Sync-Code.'); }
+  });
+
+  renderHUD();
+})();
+</script>
+</body>
+</html>
